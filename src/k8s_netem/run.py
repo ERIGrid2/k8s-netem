@@ -2,6 +2,7 @@ import os
 import sys
 import signal
 import logging
+
 from kubernetes import client, config
 
 from k8s_netem.impairment import Impairement
@@ -33,11 +34,11 @@ def main():
     api = client.CustomObjectsApi()
 
     # Fetch profile CRD
-    profile = api.get_namespaced_custom_object(
-        group='stable.riasc.io',
+    profile = api.get_cluster_custom_object(
+        group='k8s-netem.riasc.io',
         version='v1',
         namespce=NAMESPACE,
-        plural='netem-profiles',
+        plural='trafficprofiles',
         name=PROFILE)
 
     # Find suitable interface
