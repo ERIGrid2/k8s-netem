@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example
+  labels:
+    component: test
+
+  # annotations:
+  #   k8s-netem.riasc.io/profile: delay-jitter-to-quad-one
+
+spec:
+  containers:
+  - name: busybox
+    image: busybox:1.25
+    command: [ ping, '1.1.1.1' ]
