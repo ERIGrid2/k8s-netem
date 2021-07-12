@@ -10,6 +10,9 @@ import jsonpatch
 
 from kubernetes import client, config
 
+SSL_CERT_FILE = os.environ.get('SSL_CERT_FILE', '/certs/tls.crt')
+SSL_KEY_FILE = os.environ.get('SSL_KEY_FILE', '/certs/tls.key')
+
 api = None
 app = Flask(__name__)
 
@@ -137,12 +140,12 @@ def main():
         'port': 5000
     }
 
-    if os.path.isfile('/certs/cert.pem'):
+    if os.path.isfile(SSL_CERT_FILE):
         opts.update({
             'port': 443,
             'ssl_context': (
-                '/certs/tls.crt',
-                '/certs/tls.key'
+                SSL_CERT_FILE,
+                SSL_KEY_FILE
             )
         })
 
