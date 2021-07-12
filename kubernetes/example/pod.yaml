@@ -5,9 +5,7 @@ metadata:
   name: example
   labels:
     component: test
-
-  # annotations:
-  #   k8s-netem.riasc.io/profile: delay-jitter-to-quad-one
+    traffic-profile: delay-jitter-to-quad-one
 
 spec:
   containers:

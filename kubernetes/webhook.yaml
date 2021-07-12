@@ -8,20 +8,21 @@ metadata:
 kind: MutatingWebhookConfiguration
 apiVersion: admissionregistration.k8s.io/v1beta1
 metadata:
-  name: mutating-webhook
+  name: k8s-netem-mutating-webhook
 webhooks:
-  - name: webhook.webhook.svc
-    rules:
-      - operations: ["CREATE", "UPDATE"]
-        apiGroups: ["*"]
-        apiVersions: ["*"]
-        resources: ["*"]
-    clientConfig:
-      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNyRENDQVpRQ0NRRHRxMlhSYUtRQWd6QU5CZ2txaGtpRzl3MEJBUXNGQURBWE1SVXdFd1lEVlFRRERBeGgKWkcxcGMzTnBiMjVmWTJFd0lCY05NVGt3T0RJM01URXpPVEV4V2hnUE1qSTVNekEyTVRFeE1UTTVNVEZhTUJjeApGVEFUQmdOVkJBTU1ER0ZrYldsemMybHZibDlqWVRDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDCkFRb0NnZ0VCQUxDRzBDaTlXck1xOERZVWR4RjJtTFZuZlNBcTZPUWJjT3JTV3ZMQXl5R2FmZHUzYUszRWY5YkIKa0JrNnBUSmdScjIrV0YrN1IzaFJ6T3Myd1UvTytvS1pwR25OT2ZnOTYzZzVEOHJqVXFzSGxNanVKVzJFSlJ2dQpTSDhqKytIRG1lZGpKSXBscjkwcll3bFJYRDRFc1pVZjlZOXJXVVg5dGF5YTM2VlhzWFdleUU4SkxYSktTVXpnCkQ3Y1N3bno5TEtHRE9KUDNPV0RpYi9jazNsNGgyNDlvWHFHU3VmalhCcVIxbHdIRVJUNFFaUXhQVityOWhkb3gKTWdoNVAvYWtQS1I4cHJCbzR1QzR4TitnSEVhdEdIRndHalVicnVTMnhYVXQ2dS9PRlhrM0doSUFHaEZhMnFocApyYlRFbjJtYnl3RitQbjVkZ0E4cFljRkppS3dkRHZjQ0F3RUFBVEFOQmdrcWhraUc5dzBCQVFzRkFBT0NBUUVBClB5WEtsa3JyQWZSWG5IbjNnOFdMeXZ0Y0pBczgvaytJQlROdW9RL1R1SDF3a2pCZzRJV1RiTHdaRXZCU3NEbjIKYitzMUpJRjZ2cUJVaFBKWk84dVpGL2xYY3VkZG5VS1lnbjFXVEpTaG1jaXZjODREdFhyVmx3bVREYlhPdnpsegpPVHZGTFdaSGpyS1dwMmtFWnl5T0hyamg5Rk04T3RBTmZ4K2NtT09uR2taUFJwbFIrN3dqamw3ODdNb01JSjE2CndTcW4yV0JhTWlKOXZkNUV5Qk03TEM3dnV0MXMva2NoaG95bWdmR0MzeWFaYjRXdUFaeTc5azJuZVhHSnpQU0kKSm1QRGw4eUdFMy9sbU93LzdpT3ZiVEo0NXJhQWN4UUhnTlRTb2p2MzlRYTM1N0d6KzFEVkkzR04vTDZLdExKOQpTMmtnRTh0bDJsQlpVLytvQVpUZ2VRPT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-      service:
-        namespace: riasc-system
-        name: k8s-netem-webhook
-        path: /mutate
+- name: webhook.webhook.svc
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["*"]
+    apiVersions: ["*"]
+    resources: ["*"]
+  clientConfig:
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUZrekNDQTN1Z0F3SUJBZ0lVWGdGazhEYnRNTTBqcHQrWjQ4dngvYm9yMFFRd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1dURUxNQWtHQTFVRUJoTUNSRVV4RERBS0JnTlZCQWdNQTA1U1Z6RVBNQTBHQTFVRUJ3d0dRV0ZqYUdWdQpNU3N3S1FZRFZRUUREQ0pyT0hNdGJtVjBaVzB0ZDJWaWFHOXZheTV5YVdGell5MXplWE4wWlcwdWMzWmpNQjRYCkRUSXhNRGN4TWpFeE1UWTBNbG9YRFRNeE1EY3hNREV4TVRZME1sb3dXVEVMTUFrR0ExVUVCaE1DUkVVeEREQUsKQmdOVkJBZ01BMDVTVnpFUE1BMEdBMVVFQnd3R1FXRmphR1Z1TVNzd0tRWURWUVFERENKck9ITXRibVYwWlcwdApkMlZpYUc5dmF5NXlhV0Z6WXkxemVYTjBaVzB1YzNaak1JSUNJakFOQmdrcWhraUc5dzBCQVFFRkFBT0NBZzhBCk1JSUNDZ0tDQWdFQTBiYmRHdUtqVEUxNXpTeEJQS1pPcXR5N25FL0xPVU5BSjJabmU3L293WVI0Zk9ydnArYjMKaFFVVXZzTW9UZENJbjdlU2VHSHV0WEpNcUsrWWRuYXZMTmRMNVFISUUzQTlLMWpxSG5Cem52Y3FySWlRRU82VwpkSmdnZE5RVkdHWDNMblZzcDZGcTFBMzRiWEtZODhRTXFDbzdTYzZJcTJEVFFreU1PNmtxbzR1ZFIvUWw5N2FBCk9CajFCOGNlQlgwU0ZqQzFyVngwVjBGMTl0d0F2b25UZEliU2JvbzJqN09xeEw3T05UdmRFL09hVmc0Q3Z4WmcKeVVIN3NzVGhxaEJMVFdsdmJRazBEYkRiQ1c0eExDOTdjL0JSUFpGZnpLVTJtVHJreDljWXhmSUtIcmkzQXREcApsNnJUTEE4Uzd5WDZlUXk3UnUwdW1GZnJObkN0UXV1SkJBZW9OejFobkxhaytTbU93bHd1Y05SZkV3Q3ZZekhWClBPY24rbFJGRE5vVEI3dFlvV1VUQlNFMDJqMkp6SWxneW5nVG1IdjBnSmwvN0ZFTXJLZ0swWGxCMURlc3BpbG4KcnVVNUFoUXozMTJxcDh2dE9OVW1CNEd6c0hoRTFLbms0OElBZ0JZcWVPQzErMElxZFExazdvMEltczFNU1BIWgpQUHNuMUpncCtvSThDQXI5aUR0SHFEVjk3bVV3NUltN3VaWU9ueFcreEU2V243RW5mZlhWUU9veFU0cjlZVm9MCnFlQjZZMUplYXZ6dzF1Tk84RzlsWGh1NkxBVkxkUjVQcFk1Z09MdXYzSmloR0Y5enpnUDBkUVZtTm5RZ1VCbnYKdWRkeFhvQ01nSDN3YWpiNk5nb2kwaS83elUrZld2eHFBdGgzQnFIKzF5bXpPbHZDc2lSem5qVUNBd0VBQWFOVApNRkV3SFFZRFZSME9CQllFRk5pejhQY29uaWpZSWk2c2VQU3dNdjQ1MXpBYU1COEdBMVVkSXdRWU1CYUFGTml6CjhQY29uaWpZSWk2c2VQU3dNdjQ1MXpBYU1BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUwKQlFBRGdnSUJBQUluMXY4Ymo5UjMvLzVMbXgrL0xXNHl6bWxrUzlrOElCVnk3aGVVaFE4bHZZWEs0ZklTR3VaQgpXU2ZrK1c1Q3pSMFpSMWdONCszZ282QmZMUFluQ29UY2g0cEtHTEk4VUo2VHAraFpVOE9FM3ZGOFZ4ZDRqYTUxCjBDZm5LRXlTWEsxaXlUQ1QxRjdQcXhOUTBvdUNqRDBxNG9Tbm83ZUd5NmFXSk85VGpEbHFSYzhMcWJjUGR0MmkKUzZiQWxGL1NnTXk3WC9QVkNrSnAvcjBDeEVwUWdteUw0Zk15RVFnSnRIMkE2QkdXS0VBWS9UNzdMMlkrQW1DKwpHZnREa3ZkWWJzUitxVWJuOEtPR0pRUzRmRU5aOGdDa1BvekNJRnhHNU5CSlc5dVF2WlhRaHdhOTFLTGUyQThiCk5nZG93ZnlhQk41bVB6dVVkcXhmT2dwZGdyKzRSNU1xbkpORVNORDFaQ0pBWmY2cXlSWDlZSkJiVzVSSVk4S2wKMGVhSUZkRTdaMEtmZ25hZjF0UFJWUlQ5TVBwNUh6WDVDZXAvQXdIYndoenorUkFqRTVtZVAyZEx5Z2NRNk5pRgp4cG5NL0VOekk3b24vMkNxWUwwL2laOUxLTHZxSVlubzd3WW9jYk4wQVlMdnVwZ0daVTQ5cERFQWxab1Btc1UzClhTeGswOEI5bUJmT3ZjMVZJVnR2enl5ZEZ3SXpmeVVZTkIweUR5WU5McU5nUHVJKzRsRXBDVFNDY0ZobFVINFMKUzM5VERJeDIwRXNIU216eWJJcmdRNkxPaVMzRDhJNm5GajN0MjJqOFp0RDJIWlYxUnVmdkZPK3ZYNW9HcUtpNwpOb01SYTVWTGxPc1MwVUlVbGExK1ZmWUNONEF3dk13eWs1U01MUVRTNzIrZXZ6V0dSTWV6Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    service:
+      namespace: riasc-system
+      name: k8s-netem-webhook
+      path: /mutate
+      port: 443
 
 ---
 kind: Service
@@ -31,7 +32,7 @@ metadata:
   namespace: riasc-system
 spec:
   selector:
-    app: webhook
+    app: k8s-netem-webhook
   ports:
   - name: https
     protocol: TCP
@@ -42,10 +43,10 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  name: k8s-netem-webhook
   labels:
-    app: webhook
+    app: k8s-netem-webhook
   namespace: riasc-system
-  name: webhook
 spec:
   replicas: 1
   selector:
@@ -59,13 +60,8 @@ spec:
     spec:
       containers:
       - name: webhook
-        image: garethr/hook:latest
+        image: erigrid/k8s-netem:latest
         imagePullPolicy: IfNotPresent
-        args:
-        - "--bind=0.0.0.0:443"
-        - "--certfile=/certs/tls.crt"
-        - "--keyfile=/certs/tls.key"
-        - "app:app"
         volumeMounts:
           - readOnly: true
             mountPath: /certs
@@ -83,8 +79,8 @@ spec:
             scheme: HTTPS
             port: 443
           initialDelaySeconds: 3
-          periodSeconds:
+          periodSeconds: 5
       volumes:
       - name: webhook-certs
         secret:
-          secretName: webhook-certs
+          secretName: k8s-netem-webhook-certs
