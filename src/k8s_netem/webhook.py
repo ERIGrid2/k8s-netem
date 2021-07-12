@@ -86,7 +86,7 @@ def mutate_pod(pod):
     if len(match_profiles(pod, profiles)) > 0:
         pod['spec']['containers'].append({
             'name': 'k8s-netem',
-            'image': 'erigrid2/k8s-netem'
+            'image': 'erigrid/netem'
         })
 
 @app.route('/mutate', methods=['POST'])
@@ -100,11 +100,13 @@ def mutate():
     patch = jsonpatch.JsonPatch.from_diff(spec, modified_spec)
 
     return jsonify({
+        'apiVersion': 'admission.k8s.io/v1',
+        'kind': 'AdmissionReview',
         'response': {
             'allowed': True,
             'uid': request.json['request']['uid'],
             'patch': base64.b64encode(str(patch).encode()).decode(),
-            'patchtype': 'JSONPatch',
+            'patchType': 'JSONPatch',
         }
     })
 
