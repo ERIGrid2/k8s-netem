@@ -7,3 +7,5 @@ kubectl -n riasc-system create secret tls k8s-netem-webhook-certs --cert=cert.pe
 
 echo "caBundle value: "
 base64 -w0 < cert.pem
+
+rm cert.pem key.pem

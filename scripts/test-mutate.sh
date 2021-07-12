@@ -35,3 +35,5 @@ curl -X POST \
     --data @pod.json \
     -H "Content-Type: application/json" \
     http://localhost:5000/mutate
+
+rm pod.json
