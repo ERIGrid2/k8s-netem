@@ -2,10 +2,12 @@ import shlex
 import subprocess
 import logging
 
-class Impairment:
+from k8s_netem.controller import Controller
+
+class TrafficController(Controller):
     """Wrapper around netem module and tc commands."""
 
-    def __init__(self, ingress: bool, filters: list =[]):
+    def __init__(self, ingress: bool, filters: list = []):
         self.ingress = ingress
         self.filters = filters
 
@@ -43,7 +45,7 @@ class Impairment:
         self._call(f'tc qdisc del dev {self.real_interface} ingress')
         self._call(f'ip link set dev ifb0 down')
 
-    def initialize(self, interface: str, options: dict = {}):
+    def initialize(self, interface: str, options: dict):
         """Set up traffic control."""
 
         self.real_interface = interface

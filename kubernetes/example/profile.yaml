@@ -18,6 +18,8 @@ spec:
     ports:
     - port: 443
       protocol: TCP
+    - port: 53
+      protocol: UDP
   - to:
     - ipBlock:
         cidr: 192.169.0.0/16
@@ -29,10 +31,20 @@ spec:
         matchLabels:
           traffic-profile: delay-jitter-to-quad-one
 
-  impairments:
+  impairmentType: TC
+
+  impairment:
     netem:
+      loss_ratio: 5
+      loss_correlation: 10
+      duplication_ratio: 2
       delay: 1000
       jitter: 200
+      delay_jitter_correlation: 10
+      reorder_ratio: 10
+      reorder_correlation: 5
 
     rate:
-      limit: 1000 # kb/s
+      limit: 100 # kbit/s
+      buffer_length: 2000,
+      latency: 20

@@ -5,7 +5,8 @@ from kubernetes import client, watch
 
 from k8s_netem.ipset import IPset
 from k8s_netem.filter import MultiIPsetFilter
-from k8s_netem.impairment import Impairment
+from k8s_netem.controllers.tc import TrafficController
+from k8s_netem.controllers.vtt import VttController
 from k8s_netem.match import LabelSelector
 
 class Rule:
@@ -97,7 +98,15 @@ class Direction:
         
         rules = profile.spec.get(self.direction, [])
         self.rules = [Rule(self, i, r) for i, r in enumerate(rules)]
-        self.impairment = Impairment(self.direction == 'ingress', self.filters)
+
+        is_ingress = self.direction == 'ingress'
+
+        if self.profile.type == 'TC':
+            self.controller = TrafficController(is_ingress, self.filters)
+        elif self.profile.type == 'VTT':
+            self.controller = VttController(is_ingress, self.filters)
+        else:
+            raise RuntimeError('Unsupported controller type: ' + self.profile.type)
 
     def initialize(self, interface: str):
         self.interface = interface
@@ -105,12 +114,12 @@ class Direction:
         for rule in self.rules:
             rule.initialize()
 
-        self.impairment.initialize(self.interface, self.spec)
+        self.controller.initialize(self.interface, self.spec['impairment'])
 
         logging.info('Initialized %s direction of profile %s', self.direction, self.profile)
 
     def deinitialize(self):
-        self.impairment.deinitialize(self.interface, self.spec)
+        self.controller.deinitialize(self.interface, self.spec)
 
         for rule in self.rules:
             rule.deinitialize()
@@ -126,8 +135,9 @@ class Profile:
 
     def __init__(self, obj: dict):
         self.name = obj['metadata']['name']
-
+        self.uid = obj['metadata']['uid']
         self.spec = obj['spec']
+        self.type = self.spec.get('impairmentType', 'TC')
 
         if 'ingress' in self.spec:
             self.ingress = Direction(self, self.spec['ingress'], 'ingress')
@@ -160,6 +170,11 @@ class Profile:
 
         return selector.match(pod.metadata.labels)
 
+    def update(self, newp):
+        # TODO: implement
+        
+        logging.info('Updating profile %s', self.name)
+
     @classmethod
     def list(cls):
         api = client.CustomObjectsApi()
@@ -172,7 +187,7 @@ class Profile:
         return map(cls, ret['items'])
 
     @classmethod
-    def watch(cls, pod=None, intf=None):
+    def watch(cls, pod, interface):
         api = client.CustomObjectsApi()
         w = watch.Watch()
 
@@ -183,22 +198,24 @@ class Profile:
             version='v1',
             plural='trafficprofiles'):
 
-            updated_profile = Profile(event['object'])
+            obj = event['object']
             uid = obj.metadata.uid
 
-            existing_profile = profiles.get(uid)
+            new_profile = Profile(obj)
+            old_profile = profiles.get(uid)
 
             if event['type'] in ['ADDED', 'MODIFIED']:
-                updated_profile = Profile(obj)
+                if old_profile:
+                    old_profile.update(new_profile)
+                elif new_profile.match(pod):
+                    profiles[uid] = new_profile
 
-                if pod and not profile.match(pod):
-                    continue
-
-                print(profile)
-
-            elif event['type'] == 'MODIFIED':
-
-                print(event)
+                    new_profile.initialize(interface)
 
             elif event['type'] == 'DELETED':
-                profile.deinitialize()
+                new_profile.deinitialize()
+
+                del profiles[uid]
+
+    def __str__(self):
+        return f'{self.name} ({self.type})<{self.uid}>

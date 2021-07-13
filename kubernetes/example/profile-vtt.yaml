@@ -1,0 +1,23 @@
+---
+apiVersion: k8s-netem.riasc.io/v1
+kind: TrafficProfile
+metadata:
+  name: profile-delay-jitter
+spec:
+  podSelector:
+    matchLabels:
+      component: test
+
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 1.1.1.1/32
+    - podSelector:
+        matchLabels:
+          component: test
+
+  impairmentType: VTT
+
+  impairment:
+    segments: []
+    filters: []

@@ -28,7 +28,7 @@ spec:
             type: object
             required:
             - podSelector
-            - impairments
+            - impairment
             properties:
               podSelector:
                 type: object
@@ -80,8 +80,17 @@ spec:
                       contains only "value". The requirements are ANDed.
                     type: object
 
-              impairments:
+              impairmentType:
+                type: string
+                default: TC
+                pattern: '^(TC|VTT)$'
+              
+              impairment:
                 type: object
+
+                # For impairmentType == 'VTT'
+                x-kubernetes-preserve-unknown-fields: true
+
                 properties:
                   netem:
                     type: object
