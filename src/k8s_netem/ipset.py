@@ -10,7 +10,7 @@ class IPset:
 
         self.create()
 
-    def __deinit__(self):
+    def __del__(self):
 
         self.destroy()
 
