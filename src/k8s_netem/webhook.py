@@ -8,96 +8,58 @@ import http
 import json
 import jsonpatch
 
+from k8s_netem.profile import Profile
+
 from kubernetes import client, config
 
 SSL_CERT_FILE = os.environ.get('SSL_CERT_FILE', '/certs/tls.crt')
 SSL_KEY_FILE = os.environ.get('SSL_KEY_FILE', '/certs/tls.key')
 
-api = None
 app = Flask(__name__)
 
-def match_pods(pods, selector):
-    # A null label selector matches no objects.
-    if selector is None:
-        return []
-
-    expressions = selector.get('matchExpressions', [])
-
-    # Convert matchLabels into matchExpressions
-    for key, value in selector.get('matchLabels', {}).items():
-        expressions.append({
-            'key': key,
-            'values': [value],
-            'operator': 'In'
-        })
-
-    # An empty label selector matches all objects.
-    if len(expressions) == 0:
-        return pods
-
-    matched = []
-    for pod in pods:
-        labels = pod['metadata'].get('labels', {})
-
-        for expr in expressions:
-            key = expr.get('key')
-            vals = expr.get('values')
-            op = expr.get('operator')
-
-            val = labels.get(key)
-
-            match = False
-            if op == 'In':
-                match = val in vals
-            elif op == 'NotIn':
-                match = val not in vals
-            elif op == 'Exists':
-                match = key in labels
-            elif op == 'DoesNotExist':
-                match = key not in labels
-
-            if match:
-                matched.append(pod)
-
-    return matched
-
-def get_profiles():
-    ret = api.list_cluster_custom_object(
-        group='k8s-netem.riasc.io',
-        version='v1',
-        plural='trafficprofiles')
-
-    return ret['items']
-
-
-def match_profiles(pod, profiles):
-    matched = []
-    for profile in profiles:
-        selector = profile['spec']['podSelector']
-
-        if match_pods([pod], selector) != []:
-            matched.append(profile)
-
-    return matched
-
 def mutate_pod(pod):
-    profiles = get_profiles()
+    profiles = Profile.list()
 
-    if len(match_profiles(pod, profiles)) > 0:
-        pod['spec']['containers'].append({
+    has_profiles = len([p for p in profiles if p.match(pod)]) > 0
+    has_netem_container = len([c for c in pod.spec.containers if c.name == 'k8s-netem']) > 0
+
+    if has_profiles and not has_netem_container:
+        pod.spec.containers.append({
             'name': 'k8s-netem',
-            'image': 'erigrid/netem'
+            'image': 'erigrid/netem',
+            'env': [
+                {
+                    'name': 'POD_NAME',
+                    'valueFrom': {
+                        'fieldRef': {
+                            'fieldPath': 'metadata.name'
+                        }
+                    }
+                },
+                {
+                    'name': 'POD_NAMESPACE',
+                    'valueFrom': {
+                        'fieldRef': {
+                            'fieldPath': 'metadata.namespace'
+                        }
+                    }
+                }
+            ]
         })
 
 @app.route('/mutate', methods=['POST'])
 def mutate():
     print(request.json)
-    spec = request.json['request']['object']
-    modified_spec = copy.deepcopy(spec)
+    obj = request.json['request']['object']
+    
+    v1 = client.CoreV1Api()
+    pod = v1.api_client._ApiClient__deserialize(obj, 'V1Pod')
+    
+    mutate_pod(pod)
 
-    mutate_pod(modified_spec)
+    obj_modified = v1.api_client.sanitize_for_serialization(pod)
 
-    patch = jsonpatch.JsonPatch.from_diff(spec, modified_spec)
+    patch = jsonpatch.JsonPatch.from_diff(obj, obj_modified)
 
     return jsonify({
         'apiVersion': 'admission.k8s.io/v1',
@@ -133,9 +95,6 @@ def main():
         config.load_kube_config()
     else:
         config.load_incluster_config()
-
-    global api
-    api = client.CustomObjectsApi()
 
     opts = {
         'host': '0.0.0.0',

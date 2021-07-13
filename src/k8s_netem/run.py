@@ -2,13 +2,14 @@ import os
 import sys
 import signal
 import logging
+import time
 
-from kubernetes import client, config
+from kubernetes import client, config, watch
 
-from k8s_netem.impairment import Impairement
+from k8s_netem.profile import Profile
 
-PROFILE = os.environ.get('PROFILE') # Set by mutating admission webhook
-NAMESPACE = os.environ.get('NAMESPACE') # Set by downward API
+POD_NAMESPACE = os.environ.get('POD_NAMESPACE')
+POD_NAME = os.environ.get('POD_NAME')
 
 def init_signals(netem):
     '''Catch signals in order to stop network impairment before exiting.'''
@@ -23,6 +24,13 @@ def init_signals(netem):
     for sig in [signal.SIGINT, signal.SIGTERM]:
         signal.signal(sig, signal_action)
 
+def get_interface():
+    """ Find suitable interface """
+
+    intfs = os.listdir('/sys/class/net')
+
+    return [intf for intf in intfs if intf != 'lo'][0]
+
 def main():
     logging.basicConfig(level=logging.INFO)
 
@@ -31,27 +39,16 @@ def main():
     else:
         config.load_incluster_config()
 
+    v1 = client.CoreV1Api()
     api = client.CustomObjectsApi()
 
-    # Fetch profile CRD
-    profile = api.get_cluster_custom_object(
-        group='k8s-netem.riasc.io',
-        version='v1',
-        namespce=NAMESPACE,
-        plural='trafficprofiles',
-        name=PROFILE)
+    # Get my own resource
+    ret = v1.list_namespaced_pod(namespace=POD_NAMESPACE, field_selector=f'metadata.name={POD_NAME}')
+    my_pod = ret.items[0]
 
-    # Find suitable interface
-    intfs = os.listdir('/sys/class/net')
-    intf = [intf for intf in intfs if intf != 'lo'][0]
+    intf = get_interface()
 
-    imp = Impairement(intf, profile['include'], profile['exclude'])
-    imp.initialize()
+    Profile.watch(my_pod, intf)
 
-    if 'netem' in imp:
-        imp.netem(**imp['netem'])
-
-    if 'rate' in imp:
-        imp.rate(**imp['rate'])
-
-    imp.run()
+if __name__ == '__main__':
+    main()
