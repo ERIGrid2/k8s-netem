@@ -8,13 +8,26 @@ spec:
     matchLabels:
       traffic-profile: delay-jitter-to-quad-one
 
-  # egress:
-  # - to:
-  #   - ipBlock:
-  #       cidr: 1.1.1.1/32
-  #   - podSelector:
-  #       matchLabels:
-  #         component: test
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 1.1.1.1/32
+    - podSelector:
+        matchLabels:
+          component: test
+    ports:
+    - port: 443
+      protocol: TCP
+  - to:
+    - ipBlock:
+        cidr: 192.169.0.0/16
+  ingress:
+  - ports:
+    - port: 1234
+  - from:
+    - podSelector:
+        matchLabels:
+          traffic-profile: delay-jitter-to-quad-one
 
   impairments:
     netem:
