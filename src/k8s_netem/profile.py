@@ -180,7 +180,7 @@ class Profile:
         api = client.CustomObjectsApi()
 
         ret = api.list_cluster_custom_object(
-                group='k8s-netem.riasc.io',
+                group='k8s-netem.riasc.eu',
                 version='v1',
                 plural='trafficprofiles')
 
@@ -194,7 +194,7 @@ class Profile:
         profiles: Dict[str, Profile] = {}
 
         for event in w.stream(api.list_cluster_custom_object,
-            group='k8s-netem.riasc.io',
+            group='k8s-netem.riasc.eu',
             version='v1',
             plural='trafficprofiles'):
 

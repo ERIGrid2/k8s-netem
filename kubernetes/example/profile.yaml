@@ -1,5 +1,5 @@
 ---
-apiVersion: k8s-netem.riasc.io/v1
+apiVersion: k8s-netem.riasc.eu/v1
 kind: TrafficProfile
 metadata:
   name: profile-delay-jitter

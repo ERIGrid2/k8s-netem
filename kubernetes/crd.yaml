@@ -2,10 +2,10 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: trafficprofiles.k8s-netem.riasc.io
+  name: trafficprofiles.k8s-netem.riasc.eu
 
 spec:
-  group: k8s-netem.riasc.io
+  group: k8s-netem.riasc.eu
   scope: Cluster
 
   names:

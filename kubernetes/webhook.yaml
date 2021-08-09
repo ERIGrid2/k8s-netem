@@ -108,7 +108,7 @@ kind: ClusterRole
 metadata:
   name: trafficprofile-reader
 rules:
-- apiGroups: ["k8s-netem.riasc.io"]
+- apiGroups: ["k8s-netem.riasc.eu"]
   resources: ["trafficprofiles"]
   verbs: ["get", "watch", "list"]
 
