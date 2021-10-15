@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import HTTPException
 import base64
-import copy
+import logging
 import os
 import os.path
 import http
@@ -15,6 +15,8 @@ from kubernetes import client, config
 SSL_CERT_FILE = os.environ.get('SSL_CERT_FILE', '/certs/tls.crt')
 SSL_KEY_FILE = os.environ.get('SSL_KEY_FILE', '/certs/tls.key')
 
+DEBUG = 'DEBUG' in os.environ
+
 app = Flask(__name__)
 
 def mutate_pod(pod):
@@ -23,33 +25,45 @@ def mutate_pod(pod):
     has_profiles = len([p for p in profiles if p.match(pod)]) > 0
     has_netem_container = len([c for c in pod.spec.containers if c.name == 'k8s-netem']) > 0
 
+    logging.info('Mutating pod')
+
     if has_profiles and not has_netem_container:
+        env_vars = [
+            {
+                'name': 'POD_NAME',
+                'valueFrom': {
+                    'fieldRef': {
+                        'fieldPath': 'metadata.name'
+                    }
+                }
+            },
+            {
+                'name': 'POD_NAMESPACE',
+                'valueFrom': {
+                    'fieldRef': {
+                        'fieldPath': 'metadata.namespace'
+                    }
+                }
+            }
+        ]
+
+        if DEBUG:
+            env_vars.append({
+                'name': 'DEBUG',
+                'value': '1'
+            })
+
         pod.spec.containers.append({
             'name': 'k8s-netem',
             'image': 'erigrid/netem',
-            'env': [
-                {
-                    'name': 'POD_NAME',
-                    'valueFrom': {
-                        'fieldRef': {
-                            'fieldPath': 'metadata.name'
-                        }
-                    }
-                },
-                {
-                    'name': 'POD_NAMESPACE',
-                    'valueFrom': {
-                        'fieldRef': {
-                            'fieldPath': 'metadata.namespace'
-                        }
-                    }
-                }
-            ]
+            'imagePullPolicy': 'Never' if DEBUG else 'IfNotPresent',
+            'env': env_vars
         })
+
+        logging.info('Added netem sidecar to pod')
 
 @app.route('/mutate', methods=['POST'])
 def mutate():
-    print(request.json)
     obj = request.json['request']['object']
     
     v1 = client.CoreV1Api()
@@ -91,6 +105,10 @@ def handle_exception(e):
     return response
 
 def main():
+    logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+
+    logging.info('Started mutating webhook server')
+
     if os.environ.get('KUBECONFIG'):
         config.load_kube_config()
     else:
@@ -111,6 +129,3 @@ def main():
         })
 
     app.run(**opts)  # pragma: no cover
-
-if __name__ == '__main__':
-    main()
