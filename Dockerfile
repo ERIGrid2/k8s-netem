@@ -1,5 +1,16 @@
-FROM vtt/netem
+# FROM vtt/netem
+FROM python:3.9-bullseye
 
-COPY run.py /
+RUN apt-get update && \
+    apt-get -y install \
+        nftables
 
-CMD [ 'python3', '/run.py' ]
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+RUN mkdir /src
+WORKDIR /src
+COPY . /src
+RUN pip install -e .
+
+CMD ["k8s-netem-sidecar"]

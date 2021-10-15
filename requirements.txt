@@ -1,0 +1,4 @@
+kubernetes
+flask
+jsonpatch
+inotify

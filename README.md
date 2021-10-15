@@ -1,5 +1,13 @@
 # k8s-netem
 
+## Requirements
+
+- System utilities
+  - `nft` nftables
+- Kernel modules
+  - `ifb`
+  - `sch_netem`
+
 ## Documentation
 
 TODO
