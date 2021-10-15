@@ -1,0 +1,21 @@
+{
+    "interface": "enp3s0u2u4",
+    "flows": [
+        {
+            "filter": {
+                "fwmark": 1
+            },
+            "parameters": {
+                "delay": 2000
+            }
+        },
+        {
+            "filter": {
+                "fwmark": 2
+            },
+            "parameters": {
+                "delay": 20000
+            }
+        }
+    ]
+}
