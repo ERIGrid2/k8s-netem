@@ -5,7 +5,7 @@ metadata:
   name: k8s-netem
   namespace: riasc-system
 automountServiceAccountToken: true
-  
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -15,7 +15,7 @@ rules:
 - apiGroups: ["k8s-netem.riasc.eu"]
   resources: ["trafficprofiles"]
   verbs: ["get", "watch", "list"]
-  
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -29,4 +29,3 @@ roleRef:
   kind: ClusterRole
   name: trafficprofile-reader
   apiGroup: rbac.authorization.k8s.io
-  

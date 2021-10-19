@@ -3,6 +3,7 @@ from kubernetes.client.models import V1LabelSelector
 
 from typing import Union
 
+
 class LabelSelector:
 
     def __init__(self, obj: Union[dict, V1LabelSelector]):
