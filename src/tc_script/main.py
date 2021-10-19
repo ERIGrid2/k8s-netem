@@ -8,10 +8,12 @@ import inotify.adapters
 
 DEBUG = 'DEBUG' in os.environ
 
+
 def call(command: str):
-        """Run command, raising CalledProcessError if it fails."""
-        logging.info('Run: %s', command)
-        subprocess.check_call(shlex.split(command))
+    """Run command, raising CalledProcessError if it fails."""
+
+    logging.info('Run: %s', command)
+    subprocess.check_call(shlex.split(command))
 
 
 def configure(config):
@@ -24,7 +26,7 @@ def configure(config):
     try:
         call(f'tc qdisc del dev {dev} root')
     except subprocess.CalledProcessError:
-        pass # fails if now parent qdisc is present. so we ignore it
+        pass  # fails if now parent qdisc is present. so we ignore it
 
     call(f'tc qdisc add dev {dev} root handle 1: prio bands {len(flows)} priomap ' + ' '.join(priomap))
 
@@ -45,6 +47,7 @@ def configure(config):
         call(f'tc qdisc add dev {dev} parent 1:{i} netem delay {delay} ')
 
         i += 1
+
 
 def watch_for_changes(p):
     fullpath = os.path.abspath(p)
@@ -70,13 +73,14 @@ def watch_for_changes(p):
             with open(fullpath, 'r') as f:
                 contents = f.read()
                 new_hash = hash(contents)
-            
+
             if new_hash != last_hash:
                 yield event
                 last_hash = new_hash
 
     finally:
         i.remove_watch(path)
+
 
 def main():
     logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
@@ -89,13 +93,12 @@ def main():
 
     # Initial configuration
     with open(filename, 'r') as f:
-        last_config = json.load(f)        
-        configure(last_config)    
+        last_config = json.load(f)
+        configure(last_config)
 
     for event in watch_for_changes(filename):
         print(event)
 
         with open(filename, 'r') as f:
-            last_config = json.load(f)        
-            configure(last_config)    
-
+            last_config = json.load(f)
+            configure(last_config)

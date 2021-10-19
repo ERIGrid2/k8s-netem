@@ -13,8 +13,8 @@ class LabelSelector:
         self.match_labels = obj.match_labels or {}
         self.match_expressions = obj.match_expressions or []
 
-        self.expressions = self.match_expressions 
-        
+        self.expressions = self.match_expressions
+
         # Convert matchLabels into matchExpressions
         for key, value in self.match_labels.items():
             self.expressions.append({
@@ -68,5 +68,3 @@ class LabelSelector:
                 return True
 
         return False
-
-

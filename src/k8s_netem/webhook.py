@@ -19,11 +19,13 @@ DEBUG = 'DEBUG' in os.environ
 
 app = Flask(__name__)
 
+
 def mutate_pod(pod):
     profiles = Profile.list()
 
     has_profiles = len([p for p in profiles if p.match(pod)]) > 0
-    has_netem_container = len([c for c in pod.spec.containers if c.name == 'k8s-netem']) > 0
+    has_netem_container = len([c for c in pod.spec.containers
+                              if c.name == 'k8s-netem']) > 0
 
     logging.info('Mutating pod')
 
@@ -62,13 +64,14 @@ def mutate_pod(pod):
 
         logging.info('Added netem sidecar to pod')
 
+
 @app.route('/mutate', methods=['POST'])
 def mutate():
     obj = request.json['request']['object']
-    
+
     v1 = client.CoreV1Api()
     pod = v1.api_client._ApiClient__deserialize(obj, 'V1Pod')
-    
+
     mutate_pod(pod)
 
     obj_modified = v1.api_client.sanitize_for_serialization(pod)
@@ -86,9 +89,11 @@ def mutate():
         }
     })
 
+
 @app.route('/health', methods=['GET'])
 def health():
     return ('', http.HTTPStatus.NO_CONTENT)
+
 
 @app.errorhandler(HTTPException)
 def handle_exception(e):
@@ -103,6 +108,7 @@ def handle_exception(e):
     })
     response.content_type = 'application/json'
     return response
+
 
 def main():
     logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)

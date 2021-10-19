@@ -32,6 +32,7 @@ def get_interface():
 
     return [intf for intf in intfs if intf != 'lo'][0]
 
+
 def main():
     logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
