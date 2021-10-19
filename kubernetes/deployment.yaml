@@ -1,0 +1,55 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-netem-webhook
+  labels:
+    app: k8s-netem-webhook
+  namespace: riasc-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-netem-webhook
+  template:
+    metadata:
+      labels:
+        app: k8s-netem-webhook
+      name: webhook
+    spec:
+      serviceAccountName: k8s-netem
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      containers:
+      - name: webhook
+        command: ['k8s-netem-webhook']
+        image: erigrid/netem:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 443
+        volumeMounts:
+        - readOnly: true
+          mountPath: /certs
+          name: webhook-certs
+        readinessProbe:
+          httpGet:
+            path: /health
+            scheme: HTTPS
+            port: 443
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            scheme: HTTPS
+            port: 443
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        resources:
+          limits:
+            memory: 256Mi
+            cpu: 500m
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: k8s-netem-webhook-certs

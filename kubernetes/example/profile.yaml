@@ -31,9 +31,9 @@ spec:
         matchLabels:
           traffic-profile: delay-jitter-to-quad-one
 
-  impairmentType: TC
+  type: Builtin
 
-  impairment:
+  parameters:
     netem:
       loss_ratio: 5
       loss_correlation: 10

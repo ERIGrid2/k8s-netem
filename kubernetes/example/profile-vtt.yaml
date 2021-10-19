@@ -16,8 +16,8 @@ spec:
         matchLabels:
           component: test
 
-  impairmentType: VTT
+  type: VTT
 
-  impairment:
+  parameters:
     segments: []
     filters: []

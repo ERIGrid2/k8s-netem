@@ -80,15 +80,15 @@ spec:
                       contains only "value". The requirements are ANDed.
                     type: object
 
-              impairmentType:
+              type:
                 type: string
-                default: TC
-                pattern: '^(TC|VTT)$'
-              
-              impairment:
+                default: Builtin
+                pattern: '^(Builtin|Script)$'
+
+              parameters:
                 type: object
 
-                # For impairmentType == 'VTT'
+                # For type == 'Script'
                 x-kubernetes-preserve-unknown-fields: true
 
                 properties:
@@ -131,7 +131,7 @@ spec:
                         description: Correlation factor for the random reordering
                         minimum: 0
                         maximum: 100
-                      
+
                   rate:
                     type: object
                     properties:

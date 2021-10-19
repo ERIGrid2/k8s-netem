@@ -1,0 +1,14 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: k8s-netem-webhook
+  namespace: riasc-system
+spec:
+  selector:
+    app: k8s-netem-webhook
+  ports:
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 443
