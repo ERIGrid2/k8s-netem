@@ -3,7 +3,8 @@ FROM python:3.9-bullseye
 
 RUN apt-get update && \
     apt-get -y install \
-        nftables
+        nftables \
+        python3-nftables
 
 COPY requirements.txt .
 RUN pip install -r requirements.txt
