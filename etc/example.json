@@ -1,21 +1,23 @@
 {
-    "interface": "enp3s0u2u4",
-    "flows": [
-        {
-            "filter": {
-                "fwmark": 1
-            },
-            "parameters": {
-                "delay": 2000
-            }
-        },
-        {
-            "filter": {
-                "fwmark": 2
-            },
-            "parameters": {
-                "delay": 20000
-            }
-        }
-    ]
+  "flows": [
+    {
+      "direction": "ingress",
+      "filter": {
+        "fwmark": 1
+      },
+      "parameters": {
+        "delay": 2000
+      }
+    },
+    {
+      "direction": "egress",
+      "filter": {
+        "fwmark": 2
+      },
+      "parameters": {
+        "delay": 20000
+      }
+    }
+  ],
+  "interface": "enp3s0u2u4"
 }
