@@ -28,7 +28,7 @@ spec:
             type: object
             required:
             - podSelector
-            - impairment
+            - parameters
             properties:
               podSelector:
                 type: object

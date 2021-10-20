@@ -15,6 +15,18 @@ spec:
         traffic-profile: delay-jitter-to-quad-one
     spec:
       containers:
-      - name: busybox
-        image: busybox:1.25
+      - name: ping-cloudflare
+        image: nicolaka/netshoot
         command: [ ping, '1.1.1.1' ]
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+
+      - name: ping-google
+        image: nicolaka/netshoot
+        command: [ ping, '8.8.8.8' ]
+        securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
