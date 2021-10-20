@@ -1,36 +1,29 @@
 import logging
 import json
 import sys
-import shlex
 import os
-import subprocess
 import inotify.adapters
 
-DEBUG = 'DEBUG' in os.environ
+from k8s_netem.caller import call, check_call
 
+import k8s_netem.log as log
 
-def call(command: str):
-    """Run command, raising CalledProcessError if it fails."""
-
-    logging.info('Run: %s', command)
-    subprocess.check_call(shlex.split(command))
+LOGGER = logging.getLogger('tc-script')
 
 
 def configure(config):
+    LOGGER.info('Applying configuration: %s', json.dumps(config, indent=2))
+
     flows = config.get('flows', [])
     dev = config.get('interface')
     if dev is None:
         raise RuntimeError('missing device')
 
-    priomap = [str(0)] * 12
-    try:
-        call(f'tc qdisc del dev {dev} root')
-    except subprocess.CalledProcessError:
-        pass  # fails if now parent qdisc is present. so we ignore it
+    priomap = [str(0)] * 16
+    call(f'tc qdisc delete dev {dev} root')
+    check_call(f'tc qdisc add dev {dev} root handle 1: prio bands {len(flows)+2} priomap ' + ' '.join(priomap))
 
-    call(f'tc qdisc add dev {dev} root handle 1: prio bands {len(flows)} priomap ' + ' '.join(priomap))
-
-    i = 1
+    i = 2  # band 1 is for non-filtered flows
     for flow in flows:
         filter = flow.get('filter')
         if filter is None:
@@ -41,12 +34,16 @@ def configure(config):
             raise RuntimeError('missing fwmark')
 
         parameters = flow.get('parameters')
-        delay = parameters['delay']
+        delay = parameters['netem']['delay']
 
-        call(f'tc filter add dev {dev} handle {fwmark} fw classid 1:{i}')
-        call(f'tc qdisc add dev {dev} parent 1:{i} netem delay {delay} ')
+        check_call(f'tc filter add dev {dev} handle {fwmark} fw classid 1:{i}')
+        check_call(f'tc qdisc add dev {dev} parent 1:{i} netem delay {delay} ')
 
         i += 1
+
+    call(f'tc qdisc show dev {dev}')
+    call(f'tc filter show dev {dev}')
+    call(f'tc class show dev {dev}')
 
 
 def watch_for_changes(p):
@@ -56,7 +53,7 @@ def watch_for_changes(p):
     i = inotify.adapters.Inotify()
     i.add_watch(path)
 
-    logging.info('Watching for changes of: %s', fullpath)
+    LOGGER.info('Watching for changes of: %s', fullpath)
 
     last_hash = None
 
@@ -69,6 +66,12 @@ def watch_for_changes(p):
 
             if 'IN_MODIFY' not in type_names:
                 continue
+
+            st = os.stat(fullpath)
+            if st.st_size == 0:
+                continue
+
+            LOGGER.info(st)
 
             with open(fullpath, 'r') as f:
                 contents = f.read()
@@ -83,10 +86,10 @@ def watch_for_changes(p):
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+    log.setup()
 
     if len(sys.argv) != 2:
-        logging.error('usage: %s config_file', sys.argv[0])
+        LOGGER.error('usage: %s config_file', sys.argv[0])
         sys.exit(-1)
 
     filename = os.path.abspath(sys.argv[1])

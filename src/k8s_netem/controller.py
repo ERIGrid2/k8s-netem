@@ -1,8 +1,12 @@
-from typing import Dict
+from __future__ import annotations
+from typing import Dict, TYPE_CHECKING
 import itertools
+import logging
 
 from k8s_netem.caller import Caller
-from k8s_netem.profile import Profile
+
+if TYPE_CHECKING:
+    from k8s_netem.profile import Profile
 
 available_mark = itertools.count(1000)
 
@@ -10,11 +14,13 @@ available_mark = itertools.count(1000)
 class Controller(Caller):
 
     def __init__(self, intf: str):
+        self.logger = logging.getLogger('controller')
+
         self.interface: str = intf
 
         self.profiles: Dict[str, Profile] = {}
 
-    def get_mark(self):
+    def get_mark(self) -> int:
         return next(available_mark)
 
     def update(self):

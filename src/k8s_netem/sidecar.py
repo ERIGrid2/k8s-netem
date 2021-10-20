@@ -2,14 +2,21 @@ import os
 import sys
 import signal
 import logging
-import nftables
+import json
 
 from kubernetes import client, config
+
 from k8s_netem.controller import Controller
 from k8s_netem.controllers.script import ScriptController
+from k8s_netem.json import CustomEncoder
 
 from k8s_netem.profile import Profile
-from k8s_netem.config import DEBUG, POD_NAME, POD_NAMESPACE
+from k8s_netem.config import POD_NAME, POD_NAMESPACE
+from k8s_netem.nftables import nft
+
+import k8s_netem.log as log
+
+LOGGER = logging.getLogger('sidecard')
 
 
 def init_signals(netem):
@@ -35,9 +42,9 @@ def get_interface():
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+    log.setup()
 
-    logging.info('Started netem sidecar')
+    LOGGER.info('Started netem sidecar')
 
     if os.environ.get('KUBECONFIG'):
         config.load_kube_config()
@@ -53,47 +60,67 @@ def main():
     intf = get_interface()
     ctrl = ScriptController(intf)
 
+    ctrl.init()
+
+    init_nftables()
+
     # Initial list of profiles
     for profile in Profile.list():
-        ctrl.add_profile(profile)
+        if profile.match(my_pod):
+            mark = ctrl.get_mark()
+            profile.init(mark)
+            ctrl.add_profile(profile)
 
     watch(ctrl, my_pod)
 
+    ctrl.deinit()
+
 
 def init_nftables():
-    cmds = [{
-      'flush': {
-        'ruleset': None
-      }
-    }]
+    cmds = [
+        {
+            'flush': {
+                'ruleset': None
+            }
+        }
+    ]
 
-    nft = nftables.Nftables()
-    rc, output, err = nft.json_cmd(cmds)
-    if rc != 0:
-        logging.error(output)
-        raise RuntimeError('Failed to initialize nftables: %s', err)
+    nft(cmds)
 
 
 def watch(ctrl: Controller, my_pod):
     for event in Profile.watch():
-        logging.info('Event: %s', event)
-
         profile = event['profile']
         type = event['type']
+        obj = event['object']
 
-        uid = profile.metadata.uid
+        LOGGER.debug('%s %s %s',
+                     type.capitalize(),
+                     obj['kind'],
+                     obj['metadata']['name'])
+        LOGGER.trace('%s', json.dumps(profile, indent=2, cls=CustomEncoder))
+
+        uid = profile.uid
 
         old_profile = ctrl.profiles.get(uid)
 
         if type in ['ADDED', 'MODIFIED']:
             if old_profile:
-                old_profile.update(profile)
+                params_changed = old_profile.update(profile)
+
+                if params_changed:
+                    ctrl.update()
 
             elif profile.match(my_pod):
-                profile.init(ctrl)
+                mark = ctrl.get_mark()
+                profile.init(int(mark))
+
                 ctrl.add_profile(profile)
 
         elif type == 'DELETED':
             if old_profile:
                 old_profile.deinit()
+
                 ctrl.remove_profile(old_profile)
+
+        nft([{'list': {'ruleset': None}}])

@@ -1,15 +1,19 @@
+from __future__ import annotations
+from typing import Union, Dict
+
 from kubernetes import client
 from kubernetes.client.models import V1LabelSelector
-
-from typing import Union
 
 
 class LabelSelector:
 
-    def __init__(self, obj: Union[dict, V1LabelSelector]):
-        if obj is not V1LabelSelector:
+    def __init__(self, o: Union[Dict[str, str], V1LabelSelector]):
+        obj: V1LabelSelector = None
+        if o is not V1LabelSelector:
             v1 = client.CoreV1Api()
-            obj = v1.api_client._ApiClient__deserialize(obj, 'V1LabelSelector')
+            obj = v1.api_client._ApiClient__deserialize(o, 'V1LabelSelector')
+        else:
+            obj = o
 
         self.match_labels = obj.match_labels or {}
         self.match_expressions = obj.match_expressions or []

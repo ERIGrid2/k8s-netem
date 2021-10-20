@@ -12,10 +12,11 @@ class ScriptController(Controller):
     def __init__(self, intf: str, options: Dict = {}):
         super().__init__(intf)
 
-        self.config_file = tempfile.NamedTemporaryFile()
+        self.config_file = tempfile.NamedTemporaryFile('w+')
         self.options = options
 
         self.type = 'Script'
+        self.proc = None
 
     def __del__(self):
         self.config_file.close()
@@ -27,11 +28,16 @@ class ScriptController(Controller):
         self.proc = subprocess.Popen([EXECUTABLE, self.config_file.name])
 
     def update(self):
+        self.config_file.seek(0)
+        self.config_file.truncate(0)
         json.dump(self.config, self.config_file)
+        self.config_file.flush()
 
     def deinit(self):
-        self.proc.kill()
-        self.proc.wait(10)
+        if self.proc is not None:
+            self.proc.kill()
+            self.proc.wait(10)
+
         self.config_file.close()
 
     @property
@@ -49,7 +55,7 @@ class ScriptController(Controller):
         for _, profile in self.profiles.items():
             flows.append(
                 {
-                    'metadata': profile.spec.get('metadata'),
+                    'metadata': profile.meta,
                     'filter': {
                         'fwmark': profile.mark
                     },

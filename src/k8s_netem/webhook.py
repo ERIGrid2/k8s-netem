@@ -1,5 +1,3 @@
-from flask import Flask, jsonify, request
-from werkzeug.exceptions import HTTPException
 import base64
 import logging
 import os
@@ -8,14 +6,21 @@ import http
 import json
 import jsonpatch
 
-from k8s_netem.profile import Profile
-
 from kubernetes import client, config
+from flask import Flask, jsonify, request
+from werkzeug.exceptions import HTTPException
+
+from k8s_netem.profile import Profile
+import k8s_netem.log as log
+
 
 SSL_CERT_FILE = os.environ.get('SSL_CERT_FILE', '/certs/tls.crt')
 SSL_KEY_FILE = os.environ.get('SSL_KEY_FILE', '/certs/tls.key')
 
 DEBUG = 'DEBUG' in os.environ
+INJECT_TO_ALL = 'INJECT_TO_ALL' in os.environ
+
+LOGGER = logging.getLogger('webhook')
 
 app = Flask(__name__)
 
@@ -27,9 +32,9 @@ def mutate_pod(pod):
     has_netem_container = len([c for c in pod.spec.containers
                               if c.name == 'k8s-netem']) > 0
 
-    logging.info('Mutating pod')
+    LOGGER.info('Mutating pod')
 
-    if has_profiles and not has_netem_container:
+    if INJECT_TO_ALL or (has_profiles and not has_netem_container):
         env_vars = [
             {
                 'name': 'POD_NAME',
@@ -59,10 +64,15 @@ def mutate_pod(pod):
             'name': 'k8s-netem',
             'image': 'erigrid/netem',
             'imagePullPolicy': 'Never' if DEBUG else 'IfNotPresent',
-            'env': env_vars
+            'env': env_vars,
+            'securityContext': {
+                'capabilities': {
+                    'add': ['NET_ADMIN']
+                }
+            }
         })
 
-        logging.info('Added netem sidecar to pod')
+        LOGGER.info('Added netem sidecar to pod')
 
 
 @app.route('/mutate', methods=['POST'])
@@ -111,9 +121,9 @@ def handle_exception(e):
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+    log.setup()
 
-    logging.info('Started mutating webhook server')
+    LOGGER.info('Started mutating webhook server')
 
     if os.environ.get('KUBECONFIG'):
         config.load_kube_config()

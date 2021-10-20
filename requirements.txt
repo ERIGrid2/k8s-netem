@@ -2,3 +2,4 @@ kubernetes
 flask
 jsonpatch
 inotify
+jsonschema
