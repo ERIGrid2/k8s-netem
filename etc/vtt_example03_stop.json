@@ -1,0 +1,10 @@
+[
+  {
+    "profile": ""
+  },
+  {
+    "profile": "lte",
+    "fwmark": 52,
+    "interface": "lo"
+  }
+]
