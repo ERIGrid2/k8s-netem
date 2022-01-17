@@ -76,7 +76,11 @@ def main():
         try:
             ctrl = ctrls[profile.type]
         except KeyError:
-            ctrl = Controller.from_type(profile.type, intf)
+            try:
+                ctrl = Controller.from_type(profile.type, intf)
+            except RuntimeError as e:
+                LOGGER.error('Failed to get controller for profile %s: %s. Ignoring...', profile, e)
+                continue
 
         # Get a unused fwmark
         mark = Controller.get_mark()
@@ -109,12 +113,14 @@ def watch(ctrls: Dict[str, Controller], my_pod, intf):
                      obj['metadata']['name'])
         LOGGER.debug('%s', json.dumps(profile, indent=2, cls=CustomEncoder))
 
-        type = profile.spec.get('type')
-
         try:
-            ctrl = ctrls[type]
+            ctrl = ctrls[profile.type]
         except KeyError:
-            ctrl = Controller.from_type(type, intf)
+            try:
+                ctrl = Controller.from_type(profile.type, intf)
+            except RuntimeError as e:
+                LOGGER.error('Failed to get controller for profile %s: %s. Ignoring...', profile, e)
+                continue
 
         old_profile = ctrl.profiles.get(profile.uid)
 
