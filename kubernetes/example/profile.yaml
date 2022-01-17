@@ -8,7 +8,7 @@ spec:
     matchLabels:
       traffic-profile: delay-jitter-to-quad-one
 
-  type: Builtin
+  type: Script
   parameters:
     netem:
       delay: 200000

@@ -42,7 +42,7 @@ function example-run() {
     ${KUBECTL_USER} rollout restart deployment example
     ${KUBECTL_USER} rollout status deployment example
 
-    example-logs
+    example-logs k8s-netem
 }
 
 function example-logs() {

@@ -83,7 +83,7 @@ spec:
               type:
                 type: string
                 default: Builtin
-                pattern: '^(Builtin|Script)$'
+                pattern: '^(Builtin|Script|Flexe)$'
 
               parameters:
                 type: object

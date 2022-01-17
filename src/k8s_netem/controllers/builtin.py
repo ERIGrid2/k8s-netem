@@ -4,11 +4,10 @@ from k8s_netem.controller import Controller
 class BuiltinController(Controller):
     """Wrapper around netem module and tc commands."""
 
-    def __init__(self, ingress: bool, filters: list = []):
-        self.ingress = ingress
-        self.filters = filters
+    type = 'Builtin'
 
-        self.type = 'Builtin'
+    def __init__(self, intf: str):
+        super().__init__(intf)
 
     def _initialize_ingress(self):
         # Create virtual ifb device to do ingress impairment on

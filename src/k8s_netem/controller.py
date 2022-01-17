@@ -12,6 +12,7 @@ available_mark = itertools.count(1000)
 
 
 class Controller(Caller):
+    types: Dict[str, Controller] = {}
 
     def __init__(self, intf: str):
         self.logger = logging.getLogger('controller')
@@ -20,7 +21,21 @@ class Controller(Caller):
 
         self.profiles: Dict[str, Profile] = {}
 
-    def get_mark(self) -> int:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.types[cls.type] = cls
+
+    @classmethod
+    def from_type(cls, type: str, *args, **kwargs) -> Controller:
+        try:
+            return cls.types[type](*args, **kwargs)
+        except KeyError:
+            raise RuntimeError(f'Invalid controller type: {type}')
+
+    @staticmethod
+    def get_mark() -> int:
+        """ Get next available fwmark """
+
         return next(available_mark)
 
     def update(self):

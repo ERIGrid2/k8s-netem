@@ -26,6 +26,9 @@ spec:
         command: ['k8s-netem-webhook']
         image: erigrid/netem:latest
         imagePullPolicy: Never # image is build by minikube
+        env:
+        - name: DEBUG
+          value: '1'
         ports:
         - containerPort: 443
         volumeMounts:

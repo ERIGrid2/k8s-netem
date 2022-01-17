@@ -8,6 +8,7 @@ EXECUTABLE = 'tc-script'
 
 
 class ScriptController(Controller):
+    type = 'Script'
 
     def __init__(self, intf: str, options: Dict = {}):
         super().__init__(intf)
@@ -15,7 +16,6 @@ class ScriptController(Controller):
         self.config_file = tempfile.NamedTemporaryFile('w+')
         self.options = options
 
-        self.type = 'Script'
         self.proc = None
 
     def __del__(self):
