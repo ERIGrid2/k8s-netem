@@ -18,13 +18,14 @@ spec:
       name: webhook
     spec:
       serviceAccountName: k8s-netem
+      automountServiceAccountToken: true
       nodeSelector:
-        node-role.kubernetes.io/master: "true"
+        node-role.kubernetes.io/master: ""
       containers:
       - name: webhook
         command: ['k8s-netem-webhook']
         image: erigrid/netem:latest
-        imagePullPolicy: Always
+        imagePullPolicy: Never # image is build by minikube
         ports:
         - containerPort: 443
         volumeMounts:

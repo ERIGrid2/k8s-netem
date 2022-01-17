@@ -4,7 +4,6 @@ kind: ServiceAccount
 metadata:
   name: k8s-netem
   namespace: riasc-system
-automountServiceAccountToken: true
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -28,6 +27,9 @@ subjects:
 - kind: ServiceAccount
   name: k8s-netem
   namespace: riasc-system
+- kind: ServiceAccount
+  name: default
+  namespace: my-app
 roleRef:
   kind: ClusterRole
   name: k8s-netem
