@@ -2,16 +2,34 @@
 apiVersion: k8s-netem.riasc.eu/v1
 kind: TrafficProfile
 metadata:
-  name: profile-delay-jitter
+  name: profile-delay-jitter-flexe
 spec:
   podSelector:
     matchLabels:
       traffic-profile: delay-jitter-to-quad-one
 
-  type: Builtin
+  type: Flexe
+
   parameters:
-    netem:
-      delay: 200000
+    segments:
+    - profile: ethernet
+      start: 0
+      end: 1
+
+    profiles:
+    - name: ethernet
+      parameters:
+        bandwidthUp: 100000
+        bandwidthDown: 100000
+        delay: 0.25
+        delayVariation: 0.25
+        delayCorrelation: 0
+        loss: 0
+        lossCorrelation: 0
+        duplication: 0
+        corruption: 0
+        reorder: 0
+        reorderCorrelation: 0
 
   egress:
   - to:
