@@ -8,10 +8,11 @@ spec:
     matchLabels:
       traffic-profile: delay-jitter-to-quad-one
 
-  type: Script
+  type: Builtin
   parameters:
     netem:
-      delay: 200000
+      delay: 0.2 # seconds
+      loss_ratio: 1 # in [0, 1]
 
   egress:
   - to:
@@ -20,16 +21,11 @@ spec:
     - podSelector:
         matchLabels:
           component: example
-    ports:
+  - ports:
     - port: 443
       protocol: TCP
     - port: 53
       protocol: UDP
-    - port: 0
-      protocol: ICMP
-  - ports:
-    - port: 80
-      protocol: tcp
 
   ingress:
   - ports:

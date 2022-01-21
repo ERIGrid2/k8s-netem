@@ -96,56 +96,106 @@ spec:
                     type: object
                     properties:
                       loss_ratio:
-                        type: integer
+                        type: number
+                        default: 0
                         description: Percentage of packets that will be lost
+                        minimum: 0
+                        maximum: 100
                       loss_correlation:
                         type: integer
+                        default: 0
                         description: Correlation factor for the random packet loss
                         minimum: 0
                         maximum: 100
                       duplication_ratio:
                         type: integer
+                        default: 0
                         description: Percentage of packets that will be duplicated
                         minimum: 0
                         maximum: 100
+                      duplication_correlation:
+                        type: integer
+                        default: 0
+                        description: Correlation factor for duplicated packets
+                        minimum: 0
+                        maximum: 100
                       delay:
-                        type: integer
-                        description:  Overall delay for each packet in milliseconds
+                        type: number
+                        default: 0
+                        description: Overall delay for each packet in seconds
                         minimum: 0
+                        maximum: 4294.967295
                       jitter:
-                        type: integer
-                        description: Amount of jitter in milliseconds
+                        type: number
+                        default: 0
+                        description: Amount of jitter in seconds
                         minimum: 0
+                        maximum: 4294.967295
                       delay_jitter_correlation:
                         type: integer
+                        default: 0
                         description: Correlation factor for the random jitter
                         minimum: 0
                         maximum: 100
+                      distribution:
+                        type: string
+                        default: normal
+                        description: Delay distribution
+                        pattern: '^uniform|normal|pareto|paretonormal$'
                       reorder_ratio:
                         type: integer
+                        default: 0
                         description: Percentage of packets that will be reordered
                         minimum: 0
                         maximum: 100
                       reorder_correlation:
                         type: integer
+                        default: 0
                         description: Correlation factor for the random reordering
                         minimum: 0
                         maximum: 100
-
-                  rate:
-                    type: object
-                    properties:
+                      reorder_gap:
+                        type: integer
+                        default: 0
                       limit:
                         type: integer
-                        description: Rate limit in kb/s
+                        default: 0
                         minimum: 0
-                      buffer:
+                      rate:
                         type: integer
+                        default: 0
                         minimum: 0
-                      latency:
+                      rate_packetoverhead:
                         type: integer
-                        description: Maximum time packets can stay in the queue before getting dropped in milliseconds
-                        minimum: 0
+                        default: 0
+                      rate_cellsize:
+                        type: integer
+                        default: 0
+                      rate_celloverhead:
+                        type: integer
+                        default: 0
+                      slot_min_delay:
+                        type: number
+                        default: 0
+                      slot_max_delay:
+                        type: number
+                        default: 0
+                      slot_distribution:
+                        type: string
+                        default: normal
+                        pattern: '^uniform|normal|pareto|paretonormal$'
+                      slot_delay:
+                        type: number
+                        default: 0
+                      slot_jitter:
+                        type: number
+                        default: 0
+                      slot_packets:
+                        type: integer
+                        default: 0
+                      slot_bytes:
+                        type: integer
+                        default: 0
 
               egress:
                 items:
