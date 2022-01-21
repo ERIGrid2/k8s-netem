@@ -7,6 +7,7 @@ import json
 from typing import Dict
 
 from kubernetes import client, config
+from kubernetes.config.incluster_config import InClusterConfigLoader, SERVICE_CERT_FILENAME
 
 from k8s_netem.controller import Controller
 from k8s_netem.json import CustomEncoder
@@ -15,7 +16,7 @@ from k8s_netem.profile import Profile
 from k8s_netem.config import POD_NAME, POD_NAMESPACE
 from k8s_netem.nftables import nft
 
-# from k8s_netem.controllers.builtin import BuiltinController  # noqa F041
+from k8s_netem.controllers.builtin import BuiltinController  # noqa F041
 from k8s_netem.controllers.script import ScriptController  # noqa F041
 from k8s_netem.controllers.flexe import FlexeController  # noqa F041
 
@@ -46,6 +47,17 @@ def get_interface():
     return [intf for intf in intfs if intf != 'lo'][0]
 
 
+def load_incluster_config_with_token(token: str):
+    token_filename = '/tmp/token'
+    with open(token_filename, 'w') as token_file:
+        token_file.write(token)
+
+    loader = InClusterConfigLoader(
+        token_filename=token_filename,
+        cert_filename=SERVICE_CERT_FILENAME)
+    loader.load_and_set()
+
+
 def main():
     log.setup()
 
@@ -53,6 +65,10 @@ def main():
 
     if os.environ.get('KUBECONFIG'):
         config.load_kube_config()
+    elif os.environ.get('KUBETOKEN'):
+        token = os.environ.get('KUBETOKEN')
+
+        load_incluster_config_with_token(token)
     else:
         config.load_incluster_config()
 
@@ -73,14 +89,17 @@ def main():
         if not profile.match(my_pod):
             continue
 
-        try:
-            ctrl = ctrls[profile.type]
-        except KeyError:
+        if profile.type in ctrls:
+            LOGGER.info('Using existing %s controller for profile %s', profile.type, profile)
+        else:
             try:
-                ctrl = Controller.from_type(profile.type, intf)
+                LOGGER.info('Creating new %s controller for profile %s', profile.type, profile)
+                ctrls[profile.type] = Controller.from_type(profile.type, intf)
             except RuntimeError as e:
                 LOGGER.error('Failed to get controller for profile %s: %s. Ignoring...', profile, e)
                 continue
+
+        ctrl = ctrls[profile.type]
 
         # Get a unused fwmark
         mark = Controller.get_mark()
@@ -113,14 +132,17 @@ def watch(ctrls: Dict[str, Controller], my_pod, intf):
                      obj['metadata']['name'])
         LOGGER.debug('%s', json.dumps(profile, indent=2, cls=CustomEncoder))
 
-        try:
-            ctrl = ctrls[profile.type]
-        except KeyError:
+        if profile.type in ctrls:
+            LOGGER.info('Using existing %s controller for profile %s', profile.type, profile)
+        else:
             try:
-                ctrl = Controller.from_type(profile.type, intf)
+                LOGGER.info('Creating new %s controller for profile %s', profile.type, profile)
+                ctrls[profile.type] = Controller.from_type(profile.type, intf)
             except RuntimeError as e:
                 LOGGER.error('Failed to get controller for profile %s: %s. Ignoring...', profile, e)
                 continue
+
+        ctrl = ctrls[profile.type]
 
         old_profile = ctrl.profiles.get(profile.uid)
 

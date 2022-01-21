@@ -7,18 +7,14 @@ import json
 import jsonpatch
 
 from kubernetes import client, config
+from kubernetes.config.incluster_config import SERVICE_TOKEN_FILENAME
+
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import HTTPException
 
+from k8s_netem.config import INJECT_TO_ALL, DEBUG, SSL_CERT_FILE, SSL_KEY_FILE
 from k8s_netem.profile import Profile
 import k8s_netem.log as log
-
-
-SSL_CERT_FILE = os.environ.get('SSL_CERT_FILE', '/certs/tls.crt')
-SSL_KEY_FILE = os.environ.get('SSL_KEY_FILE', '/certs/tls.key')
-
-DEBUG = 'DEBUG' in os.environ
-INJECT_TO_ALL = 'INJECT_TO_ALL' in os.environ
 
 LOGGER = logging.getLogger('webhook')
 
@@ -26,6 +22,9 @@ app = Flask(__name__)
 
 
 def mutate_pod(pod):
+    with open(SERVICE_TOKEN_FILENAME) as f:
+        token = f.read().strip()
+
     profiles = Profile.list()
 
     has_profiles = len([p for p in profiles if p.match(pod)]) > 0
@@ -51,6 +50,10 @@ def mutate_pod(pod):
                         'fieldPath': 'metadata.namespace'
                     }
                 }
+            },
+            {
+                'name': 'KUBETOKEN',
+                'value': token
             }
         ]
 
@@ -63,7 +66,8 @@ def mutate_pod(pod):
         pod.spec.containers.append({
             'name': 'k8s-netem',
             'image': 'erigrid/netem',
-            'imagePullPolicy': 'Never' if DEBUG else 'IfNotPresent',
+            #  'imagePullPolicy': 'Never', # gets build locally (see scripts/dev.sh)'
+            'imagePullPolicy': 'Always',
             'env': env_vars,
             'securityContext': {
                 'capabilities': {

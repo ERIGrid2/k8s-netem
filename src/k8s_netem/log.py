@@ -1,14 +1,14 @@
 import logging
-import os
 import kubernetes
 
 import inotify.adapters
+from k8s_netem.config import DEBUG
 
 
 def setup():
     add_level('TRACE', logging.DEBUG - 5)
 
-    level = logging.DEBUG if 'DEBUG' in os.environ else logging.INFO
+    level = logging.DEBUG if DEBUG else logging.INFO
     # level = logging.TRACE
 
     logging.basicConfig(

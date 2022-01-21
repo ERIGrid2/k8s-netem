@@ -8,9 +8,6 @@ class FlexeController(Controller):
     def __init__(self, intf: str):
         super().__init__(intf)
 
-    def init(self):
-        self.update()
-
     def deinit(self):
         self.logger.info('deinit')
 

@@ -20,7 +20,8 @@ class Profile(Resource):
 
         super().__init__(spec)
 
-        self.mark = None  # will be set in init()
+        self.band = -1  # will be set by BuiltinController.add_profile()
+        self.mark = -1  # will be set in init()
 
         self.ressource = res
 

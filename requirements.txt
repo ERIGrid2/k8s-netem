@@ -3,3 +3,6 @@ flask
 jsonpatch
 inotify
 jsonschema
+
+# requests
+# websocket

@@ -16,16 +16,11 @@ class ScriptController(Controller):
         self.config_file = tempfile.NamedTemporaryFile('w+')
         self.options = options
 
-        self.proc = None
+        self.proc = subprocess.Popen([EXECUTABLE, self.config_file.name])
 
     def __del__(self):
         self.config_file.close()
         self.deinit()
-
-    def init(self):
-        self.update()
-
-        self.proc = subprocess.Popen([EXECUTABLE, self.config_file.name])
 
     def update(self):
         self.config_file.seek(0)

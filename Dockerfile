@@ -5,13 +5,7 @@ RUN apt-get update && \
     apt-get -y install \
         nftables \
         python3-nftables \
-        iproute2 \
-        python3-requests \
-        python3-tornado \
-        python3-simplejson \
-        python3-passlib \
-        python3-netaddr \
-        python3-websocket
+        iproute2
 
 # Add python3-nftables to system path
 ENV PYTHONPATH=/usr/lib/python3/dist-packages/
