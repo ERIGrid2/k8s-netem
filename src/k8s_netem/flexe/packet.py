@@ -30,7 +30,6 @@ import hashlib
 import time
 import traceback
 import sys
-import simplejson as json
 import re
 import os
 import glob

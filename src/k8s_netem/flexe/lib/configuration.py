@@ -20,7 +20,7 @@ in memory for all modules that need it.
 
 '''
 import os
-import simplejson as json
+import json
 
 CONF_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'conf/'))
 

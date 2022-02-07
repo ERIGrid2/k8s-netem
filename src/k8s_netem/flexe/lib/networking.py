@@ -21,8 +21,8 @@ THE SOFTWARE.
 import os, fcntl, sys
 import socket
 import struct
-import simplejson as json
 import errno
+import json
 
 def set_default(obj):
     if isinstance(obj, set):
@@ -240,7 +240,7 @@ class Network (object):
             length = struct.unpack('!Q', d)[0]
         return length
 
-    def rcve(self, object_hook=None):
+    def rcve(self):
         """Receive object from the socket.
 
         Returns the received Python object (which has been
@@ -250,10 +250,8 @@ class Network (object):
         data = self._rcve(size)
         frmt = "!{}s".format(size)
         msg = struct.unpack(frmt, data)
-        if object_hook is None:
-            return json.loads(msg[0])
-        else:
-            return json.loads(msg[0], object_hook=object_hook)
+
+        return json.loads(msg[0])
 
     def _check_rcve_buf(self):
         # Proto websocket framing, assuming
@@ -339,12 +337,12 @@ class Network (object):
         if obj is None and eof:
             raise EOFError
         return obj
-        
-    def query(self, obj, object_hook=None):
+
+    def query(self, obj):
         """ Send object and receive the reply.
         """
         self.send(obj)
-        return self.rcve(object_hook)
+        return self.rcve()
 
     def waitIncoming(self):
         """ Wait for incoming client connections.
