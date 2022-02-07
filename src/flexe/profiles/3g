@@ -1,1 +1,13 @@
-{"bandwidthUp":256,"bandwidthDown":256,"delay":200,"delayVariation":50,"delayCorrelation":0,"loss":0.5,"lossCorrelation":0,"duplication":0.1,"corruption":0.1,"reorder":0.2,"reorderCorrelation":0}
+{
+    "bandwidthUp": 256,
+    "bandwidthDown": 256,
+    "delay": 200,
+    "delayVariation": 50,
+    "delayCorrelation": 0,
+    "loss": 0.5,
+    "lossCorrelation": 0,
+    "duplication": 0.1,
+    "corruption": 0.1,
+    "reorder": 0.2,
+    "reorderCorrelation": 0
+}

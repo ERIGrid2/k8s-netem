@@ -18,7 +18,7 @@ THE SOFTWARE.
 '''
 
 from passlib.apps import custom_app_context as pwd_context
-import lib.configuration as conf
+import flexe.lib.configuration as conf
 import os
 
 # WARNING: The solution applied reads the full "user/passwd" into

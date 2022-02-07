@@ -278,11 +278,11 @@ def main():
     parser = argparse.ArgumentParser(description='FLEXE Controller',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    # -ssl enables secure socket
-    # -peer is ignored unless ssl is set
-    #    -peer not specified => peer cert not verified nor required
-    #    -peer=CN => verify peer cert and require commonName == CN
-    #    -peer= => CN=='', verify peer cert, don't check commonName
+    # --ssl enables secure socket
+    # --peer is ignored unless ssl is set
+    #    --peer not specified => peer cert not verified nor required
+    #    --peer=CN => verify peer cert and require commonName == CN
+    #    --peer= => CN=='', verify peer cert, don't check commonName
     parser.add_argument('--ssl', help="Use HTTPS", action='store_const', const=True)
     parser.add_argument('--peer', nargs='?', const='FLEXE_CLIENT',
                         help="With HTTPS require peer cert. Verify commonName, unless COMMON NAME is empty string",
@@ -294,7 +294,7 @@ def main():
                         nargs='*', type=address_and_port, default=[('127.0.0.1', 8888)])
 
     args = parser.parse_args()
-    print(str(args))
+
     if args.debug:
         logfile = 'console'
         logging.basicConfig(level=logging.DEBUG)

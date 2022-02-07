@@ -1,9 +1,9 @@
 {
-    "client_key": null,
     "client_crt": null,
-    "root_ca": null,
-    "listen_port": 8080,
+    "client_key": null,
     "listen_addr": "127.0.0.1",
+    "listen_port": 8080,
     "log_dir": "./",
+    "root_ca": null,
     "users": "users"
 }

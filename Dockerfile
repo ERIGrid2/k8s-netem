@@ -14,11 +14,11 @@ ENV PYTHONPATH=/usr/lib/python3/dist-packages/
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY etc/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY etc/supervisord.conf /etc/
 
 RUN mkdir /src
 WORKDIR /src
 COPY . /src
 RUN pip install -e .
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]
