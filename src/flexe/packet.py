@@ -24,7 +24,7 @@ import collections
 import netaddr
 from base64 import b64encode, b64decode
 from binascii import hexlify, unhexlify
-import k8s_netem.flexe.lib.networking as net
+import flexe.lib.networking as net
 import hashlib
 import time
 import traceback

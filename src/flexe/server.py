@@ -30,8 +30,8 @@ import re
 import glob
 import socket
 import base64
-import k8s_netem.flexe.lib.configuration as conf
-import k8s_netem.flexe.lib.account as account
+import flexe.lib.configuration as conf
+import flexe.lib.account as account
 import ssl
 
 common_name = None
@@ -241,7 +241,7 @@ class FlexeHandler(tornado.web.RequestHandler):
                 raise ServiceError("Failed reading file '{}': {}".format(path, str(e)))
 
 
-def main(args):
+def start(args):
     app = tornado.web.Application([
         (r"/flexe/(profiles|applications)(/.*)?", FlexeHandler),
         (r"/flexe/(setPassword)(/.*)?", SetPassword),
@@ -274,7 +274,7 @@ def address_and_port(arg):
     return (ap[0], 8888)
 
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='FLEXE Controller',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -307,7 +307,6 @@ if __name__ == '__main__':
             when='midnight', backupCount=7)
         logger.addHandler(hdlr)
 
-    common_name = args.peer
     if args.ssl:
         report = "Listening HTTPS on {}#{}".format(args.addr, args.port)
         # REVISIT: peer cert checking not working now with tornado?
@@ -323,5 +322,11 @@ if __name__ == '__main__':
             report += " -- ignoring '-peer={}' checking"
     report += ", logs into " + logfile
     logging.info(report)
+
     print(report)
-    main(args)
+
+    start(args)
+
+
+if __name__ == '__main__':
+    main()

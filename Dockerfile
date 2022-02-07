@@ -1,4 +1,3 @@
-# FROM vtt/netem
 FROM python:3.9-bullseye
 
 RUN apt-get update && \
@@ -15,7 +14,7 @@ ENV PYTHONPATH=/usr/lib/python3/dist-packages/
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY etc/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 RUN mkdir /src
 WORKDIR /src
