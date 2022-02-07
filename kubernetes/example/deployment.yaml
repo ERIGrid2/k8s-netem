@@ -12,7 +12,8 @@ spec:
     metadata:
       labels:
         component: example
-        traffic-profile: delay-jitter-to-quad-one
+        #traffic-profile: delay-jitter-to-quad-one
+        traffic-profile: profile-delay-jitter-flexe
     spec:
       containers:
       - name: ping-cloudflare

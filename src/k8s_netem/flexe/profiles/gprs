@@ -1,0 +1,1 @@
+{"bandwidthUp":60,"bandwidthDown":60,"delay":350,"delayVariation":100,"delayCorrelation":0,"loss":0.5,"lossCorrelation":0,"duplication":0.1,"corruption":0.1,"reorder":0.2,"reorderCorrelation":0}

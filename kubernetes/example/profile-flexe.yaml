@@ -6,7 +6,8 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      traffic-profile: delay-jitter-to-quad-one
+      #traffic-profile: delay-jitter-to-quad-one
+      traffic-profile: profile-delay-jitter-flexe
 
   type: Flexe
 
@@ -55,4 +56,5 @@ spec:
   - from:
     - podSelector:
         matchLabels:
-          traffic-profile: delay-jitter-to-quad-one
+          #traffic-profile: delay-jitter-to-quad-one
+          traffic-profile: profile-delay-jitter-flexe

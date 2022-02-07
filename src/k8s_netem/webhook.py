@@ -66,8 +66,8 @@ def mutate_pod(pod):
         pod.spec.containers.append({
             'name': 'k8s-netem',
             'image': 'erigrid/netem',
-            #  'imagePullPolicy': 'Never', # gets build locally (see scripts/dev.sh)'
-            'imagePullPolicy': 'Always',
+            'imagePullPolicy': 'Never', # gets build locally (see scripts/dev.sh)'
+            #'imagePullPolicy': 'Always',
             'env': env_vars,
             'securityContext': {
                 'capabilities': {
