@@ -3,6 +3,8 @@ flask
 jsonpatch
 inotify
 jsonschema
-
-# requests
-# websocket
+tornado
+requests
+websocket
+passlib
+netaddr

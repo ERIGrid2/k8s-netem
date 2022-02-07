@@ -7,13 +7,7 @@ RUN apt-get update && \
         python3-nftables \
         iproute2 \
         supervisor \
-        iproute2 \
-        python3-requests \
-        python3-tornado \
-        python3-simplejson \
-        python3-passlib \
-        python3-netaddr \
-        python3-websocket
+        iproute2
 
 # Add python3-nftables to system path
 ENV PYTHONPATH=/usr/lib/python3/dist-packages/
@@ -28,5 +22,4 @@ WORKDIR /src
 COPY . /src
 RUN pip install -e .
 
-# CMD ["k8s-netem-sidecar"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
