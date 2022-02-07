@@ -4,3 +4,4 @@ __pycache__/
 .vscode/
 *.pem
 kubernetes/*.bak
+/.mypy_cache
