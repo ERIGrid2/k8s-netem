@@ -2,7 +2,7 @@
 
 Copyright 2022, VTT Technical Research Centre of Finland Ltd.
 
-The above copyright notice and this license notice shall be included in all copies 
+The above copyright notice and this license notice shall be included in all copies
 or substantial portions of the Software
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -30,6 +30,7 @@ import os
 USERS = conf.path(conf._CF['users'])
 ADMIN = "flexe"
 
+
 def _load():
     users = {}
     if os.path.exists(USERS):
@@ -37,26 +38,29 @@ def _load():
             for line in f.read().splitlines():
                 name, _, hash = line.partition(':')
                 if not name or name[0] == '#':
-                    continue # ignore bad lines and "comments"
+                    continue  # ignore bad lines and "comments"
                 users[name] = hash
     else:
         # No USERS file, create default admin user with empty password.
         users[ADMIN] = pwd_context.encrypt('')
     return users
 
+
 def _save(users):
     # Write user/passwd dictionary into file
     with open(USERS, "w") as f:
-        for name,hash in users.iteritems():
+        for name, hash in users.iteritems():
             f.write(name + ':' + hash + '\n')
-    
+
+
 def check_user(user, password):
     """Return True, if password matches for user, and False otherwise"""
 
     users = _load()
     if user in users:
-         return pwd_context.verify(password, users[user])
+        return pwd_context.verify(password, users[user])
     return False
+
 
 def add_user(user, password):
     """Add new user and password
@@ -69,6 +73,7 @@ def add_user(user, password):
         _save(users)
         return True
     return False
+
 
 def password(user, oldpass, newpass):
     """Change password of an existing user"""

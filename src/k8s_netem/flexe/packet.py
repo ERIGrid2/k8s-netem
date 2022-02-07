@@ -2,7 +2,7 @@
 
 Copyright 2022, VTT Technical Research Centre of Finland Ltd.
 
-The above copyright notice and this license notice shall be included in all copies 
+The above copyright notice and this license notice shall be included in all copies
 or substantial portions of the Software
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -22,20 +22,17 @@ import socket
 import select
 import collections
 import netaddr
-from queue import Empty
 from base64 import b64encode, b64decode
-from binascii import hexlify,unhexlify
+from binascii import hexlify, unhexlify
 import k8s_netem.flexe.lib.networking as net
 import hashlib
 import time
 import traceback
 import sys
-import re
 import os
 import glob
 import subprocess
 from threading import Timer
-import signal
 
 IF_ALL = (1 << 53) - 1
 
@@ -45,8 +42,8 @@ HEART_BEAT = 1.0
 KEYPACK = [
     (6, 'mac', 'dmac', 'Destination MAC address'),
     (6, 'mac', 'smac', 'Source MAC address'),
-    (2, 'int', 'vlan1', None), #'First VLAN tag' -- not available now
-    (2, 'int', 'vlan2', None), # 'Secong VLAN tag' -- not available now
+    (2, 'int', 'vlan1', None),  # 'First VLAN tag' -- not available now
+    (2, 'int', 'vlan2', None),  # 'Secong VLAN tag' -- not available now
     (2, 'hex', 'type', 'Ethernet Type'),
     (1, 'int', 'ipv', 'IP version value'),
     (16, 'ip', 'src', 'IP source address/prefix'),
@@ -64,119 +61,123 @@ KEY_FMT = '%%0%dx' % (2*KEY_LENGTH)
 # This tells the GUI client the supported profile parameters.
 
 PROFILE_INT_MS = {'type': 'int', 'unit': 'ms'}
-PROFILE_INT_S  = {'type': 'int', 'unit': 's'}
+PROFILE_INT_S = {'type': 'int', 'unit': 's'}
 PROFILE_INT_PERCENT = {'type': 'int', 'unit': '%'}
 PROFILE_INT_KBPS = {'type': 'int', 'unit': 'Kbps'}
 PROFILE_DELAY_DISTRIBUTION = {'type': 'select',
                               'option': ['', 'uniform', 'normal', 'pareto', 'paretonormal']}
-                              
+
 PROFILE_TEMPLATE = [
     {},
     {
         'label': 'Bandwidth up:',
-        'name' : 'bandwidthUp',
+        'name': 'bandwidthUp',
         'value': PROFILE_INT_KBPS,
-        'help' : ('Emulated bit rate to use when flow represents the "upload" direction.')
+        'help': ('Emulated bit rate to use when flow represents the "upload" direction.')
     },
     {
         'label': 'Bandwidth Down:',
-        'name' : 'bandwidthDown',
+        'name': 'bandwidthDown',
         'value': PROFILE_INT_KBPS,
-        'help' : ('Emulated bit rate to use when flow represents the "download" direction.')
+        'help': ('Emulated bit rate to use when flow represents the "download" direction.')
     },
     {},
     {
         'label': 'Delay:',
-        'name' :'delay',
+        'name': 'delay',
         'value': PROFILE_INT_MS,
-        'help' : ('Set a delay to the packets of the flow. The computed '
-                  'delay is a combination of parameters '
-                  '<p style="text-align: center;"><i>delay</i> \u00b1 <i>variation</i>,</p> with next random '
-                  'element depending on previous value by the <i>correlation</i> percentace.')
+        'help': ('Set a delay to the packets of the flow. The computed '
+                 'delay is a combination of parameters '
+                 '<p style="text-align: center;"><i>delay</i> \u00b1 <i>variation</i>,</p> with next random '
+                 'element depending on previous value by the <i>correlation</i> percentace.')
     },
     {
         'label': 'Delay variation:',
-        'name' : 'delayVariation',
+        'name': 'delayVariation',
         'value': PROFILE_INT_MS
     },
     {
         'label': 'Delay correlation:',
-        'name' : 'delayCorrelation',
+        'name': 'delayCorrelation',
         'value': PROFILE_INT_PERCENT
     },
     {
         'label': 'Distribution:',
-        'name' : 'delayDistribution',
+        'name': 'delayDistribution',
         'value': PROFILE_DELAY_DISTRIBUTION,
-        'help' : ('If a distribution is selected, <b>the delay variation, '
-                  'must have a non-zero value</b>.')
+        'help': ('If a distribution is selected, <b>the delay variation, '
+                 'must have a non-zero value</b>.')
     },
     {},
     {
         'label': 'Packet loss:',
-        'name' : 'loss',
+        'name': 'loss',
         'value': PROFILE_INT_PERCENT,
-        'help' : ('Set the percentage of the packet '
-		  'loss. The <i>correlation</i> defines the percentage by'
-		  'which the next random loss depends on the previous '
-		  'value. This can be used to simulate packet losses in '
-		  'bursts.')
+        'help': ('Set the percentage of the packet '
+                 'loss. The <i>correlation</i> defines the percentage by'
+                 'which the next random loss depends on the previous '
+                 'value. This can be used to simulate packet losses in '
+                 'bursts.')
     },
     {
         'label': 'Loss correlation:',
-        'name' : 'lossCorrelation',
+        'name': 'lossCorrelation',
         'value': PROFILE_INT_PERCENT,
     },
     {
         'label': 'Duplicates:',
-        'name' : 'duplication',
+        'name': 'duplication',
         'value': PROFILE_INT_PERCENT,
-        'help' : ('Set the percentage of the packet duplication.')
+        'help': ('Set the percentage of the packet duplication.')
     },
     {
         'label': 'Corruption:',
-        'name' : 'corruption',
+        'name': 'corruption',
         'value': PROFILE_INT_PERCENT,
-        'help' : ('Set the percentage of the packet corruption by '
-		  'generated random noise.')
+        'help': ('Set the percentage of the packet corruption by '
+                 'generated random noise.')
     },
     {},
     {
         'label': 'Reorder:',
-        'name' : 'reorder',
+        'name': 'reorder',
         'value': PROFILE_INT_PERCENT,
-        'help' : ('Set the percentage of the packets that get '
-		  'reordered. The <i>correlation</i> defines the percentage '
-		  'of next random value depending on the previous one. '
-		  '<p>Note: <i>reorder</i> requires non-zero delay setting '
-		  'to be effective.')
+        'help': ('Set the percentage of the packets that get '
+                 'reordered. The <i>correlation</i> defines the percentage '
+                 'of next random value depending on the previous one. '
+                 '<p>Note: <i>reorder</i> requires non-zero delay setting '
+                 'to be effective.')
     },
     {
         'label': 'Reorder correlation:',
-        'name' : 'reorderCorrelation',
+        'name': 'reorderCorrelation',
         'value': PROFILE_INT_PERCENT
     },
     {},
     {
-        'name' : 'runTime',
+        'name': 'runTime',
         'value': PROFILE_INT_S
     }
 ]
 
-CLIENTS = set()
+CLIENTS: set = set()
+
 
 def log(client, msg):
-    print (msg, flush=True)
+    print(msg, flush=True)
+
 
 def bytes_to_int(s):
     """Convert key byte array to a long integer
     """
     return int(hexlify(s), 16)
 
+
 def int_to_bytes(key):
     """Convert integer key into bytes array
     """
     return unhexlify(KEY_FMT % key)
+
 
 def filter_key_mask(source, target):
     """Generate filter key and mask for source/target socket addresses
@@ -201,6 +202,7 @@ def filter_key_mask(source, target):
             mask += '\0' * field[0]
     return (bytes_to_int(bytes(key, "utf-8")), bytes_to_int(bytes(mask, "utf-8")))
 
+
 class ServerHandle(net.Network):
     """Listening socket
 
@@ -214,8 +216,10 @@ class ServerHandle(net.Network):
     isserver = True
     id = 0
 
+
 class ServiceError(Exception):
     pass
+
 
 class ClientHandle(net.Network):
     """Connected Client Socket
@@ -235,7 +239,7 @@ class ClientHandle(net.Network):
         self.field = None
         self.header = {}
         self.linenr = 0
-        self.notify = False # set True, when client is ready to receive countup's
+        self.notify = False  # set True, when client is ready to receive countup's
         self.filter_id = None
         self.filters = []
         self.profiles = None
@@ -253,7 +257,7 @@ class ClientHandle(net.Network):
         self.inbound = filter_key_mask(peername, sockname)
         self.outbound = filter_key_mask(sockname, peername)
 
-        self.interfaces = 0 # bitmask of interfaces configured
+        self.interfaces = 0  # bitmask of interfaces configured
         log(self, "got client {} peer={} sock={}".format(self.id, peername, sockname))
 
     def _tc_run(self, command, timeout=5):
@@ -264,10 +268,12 @@ class ClientHandle(net.Network):
             timeout: Value in seconds.
 
         """
-        log(self, "--- " + command) # KISAAH
+        def kill_proc(p):
+            p.kill()
+
+        log(self, "--- " + command)  # KISAAH
         proc = subprocess.Popen(command, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, shell=True)
-        kill_proc = lambda p: p.kill()
         timer = Timer(timeout, kill_proc, [proc])
         timer.start()
         out, err = proc.communicate()
@@ -295,7 +301,7 @@ class ClientHandle(net.Network):
             if mask == 0:
                 continue
 
-            if name in {'vlan1','vlan2'}:
+            if name in {'vlan1', 'vlan2'}:
                 raise ServiceError("Filtering based on vlan not yet supported: " + name)
 
             if type == 'ip':
@@ -319,7 +325,7 @@ class ClientHandle(net.Network):
                     protocol = 'ipv6'
                     ipv = 'ip6'
             elif name == 'ipv':
-                print (name,value)
+                print(name, value)
                 if value == 6:
                     # Assume 'protocol=ipv6' does the
                     # filtering, and don't install any
@@ -367,19 +373,19 @@ class ClientHandle(net.Network):
                 # But if the Ethernet Type is something else, there is need to change protocol type
                 # and selector.
                 if value != 2048:
-                    print ("DEBUG: Not IP packet -> act accordingly")
+                    print("DEBUG: Not IP packet -> act accordingly")
                     protocol = 'all'
                     mac_selector = 'u32 match u16 {:#04x} 0xffff at -2'.format(value)
                     break
                 else:
-                    print ("DEBUG: IP packet -> do nothing")
+                    print("DEBUG: IP packet -> do nothing")
                 # print("DEBUG: Type = Ethernet type, selector = {}, value = {}, mask = {}".format(selector, value, mask))
             elif name == "fwmark":
                 # If the "type" == int and name == "fwmark", then only use fw_mark as a filter
                 protocol = 'fw'
                 selector = "handle {}".format(value & mask)
             else:
-                raise ServiceError("Unsupported filter: " + name )
+                raise ServiceError("Unsupported filter: " + name)
 
         if selector == '':
             # Add dummy "match all", if nothing else matched
@@ -508,11 +514,11 @@ class ClientHandle(net.Network):
 
             data = self.profile_data.get(egress)
             if data is None:
-                continue # This is an error (should not happen)
+                continue  # This is an error (should not happen)
 
             start = profile['index'] + 1
             end = data['run']['end']
-            redo.add(egress) # changing segment, some tc update will be needed
+            redo.add(egress)  # changing segment, some tc update will be needed
             for index, curr in enumerate(data['segments'][start:end], start=start):
                 profile.update(curr)
                 profile['index'] = index
@@ -537,13 +543,13 @@ class ClientHandle(net.Network):
                     del profile['lifeTime']
 
         if len(redo) == 0:
-            #log(self, "delay: {} -- no redo".format(delay))
-            return delay,None
-        
+            # log(self, "delay: {} -- no redo".format(delay))
+            return delay, None
+
         # Record actual profiles used
         if self.profiles is None:
-            #log(self, "delay: {} -- no profiles".format(delay))
-            return delay,None
+            # log(self, "delay: {} -- no profiles".format(delay))
+            return delay, None
         i = 0
         profiles_used = {}
         classes = {}
@@ -552,7 +558,7 @@ class ClientHandle(net.Network):
             egress = self.profiles[i][1]
             i += 1
             if not egress:
-                continue # filter does not have netem
+                continue  # filter does not have netem
             netem = classes.get((egress, info.dir))
             if netem is None:
                 profile = self.run_profiles[egress]
@@ -561,9 +567,9 @@ class ClientHandle(net.Network):
                     # if egress not in redo:
                     #     continue # No change in this profile
                     netem = self._tc_netem(profile, info.dir)
-                    classes[(egress,info.dir)] = netem
+                    classes[(egress, info.dir)] = netem
                 else:
-                    netem = 'netem' # Remove profile for this filter
+                    netem = 'netem'  # Remove profile for this filter
             minor = 10 + i
             if egress not in redo:
                 continue
@@ -574,8 +580,8 @@ class ClientHandle(net.Network):
         if len(profiles_used) == 0:
             # No profiles left, terminate application cleanly (remove all definitions)
             self.unrun(INTERFACES)
-        #log(self, "delay: {} -- profiles {}".format(delay, str(profiles_used)))
-        return delay,profiles_used
+        # log(self, "delay: {} -- profiles {}".format(delay, str(profiles_used)))
+        return delay, profiles_used
 
     def run(self, msg, INTERFACES):
         # msg = {
@@ -620,7 +626,7 @@ class ClientHandle(net.Network):
                     data = self._load_profile(egress)
                     netem = self._tc_netem(data, info.dir)
                     profiles_used[egress] = data
-                    classes[(egress,info.dir)] = netem
+                    classes[(egress, info.dir)] = netem
                 minor = 10 + i
             else:
                 minor = 1
@@ -668,7 +674,7 @@ class ClientHandle(net.Network):
                 # No match on inbound
                 return False
         return True
-            
+
     def filter_flow(self, f):
         # Update filter specific counts. f is an instance of CountUp.
         for filter in self.filters:
@@ -687,7 +693,7 @@ class ClientHandle(net.Network):
 
     def flush_counts(self):
         if len(self.filters) == 0:
-            return # Nothing to do
+            return  # Nothing to do
         counts = []
         i = 0
         for filter in self.filters:
@@ -756,14 +762,14 @@ class ClientHandle(net.Network):
                 if self.header.get('upgrade').lower() != 'websocket':
                     raise socket.error("Request is not websocket upgrade")
                 hash = hashlib.sha1()
-                #hash.update(key)
+                # hash.update(key)
                 hash.update(bytes(key, "utf-8"))
                 hash.update(bytes('258EAFA5-E914-47DA-95CA-C5AB0DC85B11', "utf-8"))
                 hash_base64 = b64encode(hash.digest()).decode("utf-8")
                 self.check_send('HTTP/1.1 101 Switching Protocols\r\n')
                 self.check_send('Upgrade: websocket\r\n')
                 self.check_send('Connection: Upgrade\r\n')
-                #self.check_send('Sec-WebSocket-Accept: ' + b64encode(hash.digest()) + '\r\n')
+                # self.check_send('Sec-WebSocket-Accept: ' + b64encode(hash.digest()) + '\r\n')
                 self.check_send('Sec-WebSocket-Accept: ' + hash_base64 + '\r\n')
                 self.check_send('\r\n')
                 self.websocket = True
@@ -795,10 +801,12 @@ class ClientHandle(net.Network):
             self.linenr += 1
             log(self, line)
 
+
 def _mac(mac):
     a = netaddr.EUI(mac)
     a.dialect = netaddr.mac_unix
     return str(a)
+
 
 def _ip(a, v):
     if (v):
@@ -806,7 +814,8 @@ def _ip(a, v):
     else:
         return a
 
-class Info():
+
+class Info:
     def __init__(self, inb=None, out=None, dir=False):
         self.inb = IF_ALL if inb is None else inb
         self.inb_count = 0
@@ -822,8 +831,10 @@ class Info():
             'time': self.time
         }
 
+
 class CountUp(collections.namedtuple('CountUp', ['key', 'inb', 'inb_delta', 'out', 'out_delta', 'time'])):
     pass
+
 
 QUIT = 'Quit'
 GETPACKING = 'GetPacking'
@@ -834,17 +845,19 @@ NEWINTERFACE = 'NewInterface'
 PROFILETEMPLATE = 'ProfileTemplate'
 TCCOMMAND = 'TcCommand'
 
+
 def send_to_all(clients, msg, butone=None):
     for c in clients:
         if c is not butone:
             c.send(msg)
 
+
 def exporter():
-    print ("exporter pid=",os.getpid())
+    print("exporter pid=", os.getpid())
     wss = ServerHandle()
     wss.createServerSocket(('', 8888))
 
-    INTERFACES = { key: (key, 1<<value, value) for (value, key) in enumerate(os.listdir('/sys/class/net'))} # Hash of detected interfaces
+    INTERFACES = {key: (key, 1 << value, value) for (value, key) in enumerate(os.listdir('/sys/class/net'))}  # Hash of detected interfaces
 
     # Currently running filter (as client instance)
     running = None
@@ -861,12 +874,12 @@ def exporter():
 
     while busy:
         if (cycles & 0xffff) == 0:
-            print ("exporter cycles=",cycles)
+            print("exporter cycles=", cycles)
         cycles += 1
-        
+
         (sread, swrite, sexc) = select.select(WATCHED, [], WATCHED, timeout)
         timeout = 2
-        
+
         for c in CLIENTS:
             timemark = time.time()
             passed = timemark - c.timemark
@@ -883,7 +896,7 @@ def exporter():
             elif passed < c.heart_beat:
                 if c.heart_beat - passed < timeout:
                     timeout = c.heart_beat - passed
-                continue # idle, no packet changes
+                continue  # idle, no packet changes
 
             # throttle_delay prevents sending of excessive
             # amount of packet count messages (update_counts
@@ -894,7 +907,7 @@ def exporter():
                 c.flush_counts()
             except Exception as e:
                 # NOTE: this branch is most likely untested...
-                print ("closing client: " + str(c.id) + " error: " + str(e))
+                print("closing client: " + str(c.id) + " error: " + str(e))
                 if c is running:
                     c.unrun(INTERFACES)
                     c.close()
@@ -902,12 +915,14 @@ def exporter():
         if running is not None:
             timeout, used = running.rerun(INTERFACES, timeout)
             if used is not None:
-                reply =  {'id': RUNAPPLICATION,
-                          'stamp': time.time(),
-                          'client': 0,
-                          'fid': running.filter_id,
-                          'interfaces': running.interfaces,
-                          'profiles': used }
+                reply = {
+                    'id': RUNAPPLICATION,
+                    'stamp': time.time(),
+                    'client': 0,
+                    'fid': running.filter_id,
+                    'interfaces': running.interfaces,
+                    'profiles': used
+                }
                 running.send(reply)
                 reply['client'] = running.user + ':' + str(running.id)
                 send_to_all(CLIENTS, reply, butone=running)
@@ -925,7 +940,7 @@ def exporter():
                         msg = rdy.rcve_async(do_read)
                         if msg is None:
                             break
-                        print ("GOT:", msg)
+                        print("GOT:", msg)
                         try:
                             id = msg.get('id')
                             print("KISAAH: id = {}".format(id))
@@ -936,10 +951,10 @@ def exporter():
                                 rdy.send({'id': GETPACKING, 'result': KEYPACK})
                                 # This is ugly hack, was working better in python2
                                 # Without this, json.dumps will error "Circular reference detected"
-                                l = []
+                                j = []
                                 for i in INTERFACES.values():
-                                    l.append(list(i))
-                                rdy.send({'id': NEWINTERFACE, 'result': l})
+                                    j.append(list(i))
+                                rdy.send({'id': NEWINTERFACE, 'result': j})
                                 rdy.send({'id': PROFILETEMPLATE, 'result': PROFILE_TEMPLATE})
                                 rdy.notify = True
                             elif id == SETFILTERS:
@@ -975,12 +990,14 @@ def exporter():
                                 # 'used' is a dictionary of profiles
                                 # (key is the profile name)
                                 running = rdy
-                                reply =  {'id': RUNAPPLICATION,
-                                          'stamp': time.time(),
-                                          'client': 0,
-                                          'fid': rdy.filter_id,
-                                          'interfaces': rdy.interfaces,
-                                          'profiles': used }
+                                reply = {
+                                    'id': RUNAPPLICATION,
+                                    'stamp': time.time(),
+                                    'client': 0,
+                                    'fid': rdy.filter_id,
+                                    'interfaces': rdy.interfaces,
+                                    'profiles': used
+                                }
                                 pl = msg.get('profiles')
                                 if pl is None:
                                     # profiles == None => stop running
@@ -994,7 +1011,7 @@ def exporter():
                                     reply['filters'] = [(pl[i],
                                                          b64encode(int_to_bytes(f[0])),
                                                          b64encode(int_to_bytes(f[1])),
-                                                         f[2].dir) for i,f in enumerate(rdy.filters)]
+                                                         f[2].dir) for i, f in enumerate(rdy.filters)]
                                 # client==0 indicates own application for the client
                                 rdy.send(reply)
                                 # Inform all other clients
@@ -1006,10 +1023,10 @@ def exporter():
                             rdy.error(msg, str(e))
                         do_read = False
                 except Exception as e:
-                    print ("*** Closing client: {} ***".format(str(e)))
-                    print ('-'*60)
+                    print("*** Closing client: {} ***".format(str(e)))
+                    print('-'*60)
                     traceback.print_exc(file=sys.stdout)
-                    print ('-'*60)
+                    print('-'*60)
                     if rdy is running:
                         rdy.unrun(INTERFACES)
                         running = None
@@ -1019,18 +1036,20 @@ def exporter():
                     CLIENTS.remove(rdy)
                     WATCHED.remove(rdy)
     for c in CLIENTS:
-        print ("closing client: ", c.id)
+        print("closing client: ", c.id)
         if c is running:
             c.unrun(INTERFACES)
         c.close()
     wss.close()
-    print ("exporter exit")
+    print("exporter exit")
+
 
 def main():
     # Initialize supported netem delay distributions
-    PROFILE_DELAY_DISTRIBUTION['option'] = ['','uniform'] + [os.path.splitext(os.path.basename(p))[0] for p in glob.glob('/usr/lib/tc/*.dist')]
-    
+    PROFILE_DELAY_DISTRIBUTION['option'] = ['', 'uniform'] + [os.path.splitext(os.path.basename(p))[0] for p in glob.glob('/usr/lib/tc/*.dist')]
+
     exporter()
+
 
 if __name__ == '__main__':
     main()

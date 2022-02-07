@@ -2,7 +2,7 @@
 
 Copyright 2022, VTT Technical Research Centre of Finland Ltd.
 
-The above copyright notice and this license notice shall be included in all copies 
+The above copyright notice and this license notice shall be included in all copies
 or substantial portions of the Software
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -36,14 +36,17 @@ import ssl
 
 common_name = None
 
+
 class ServiceError(Exception):
     pass
+
 
 FILENAME = re.compile(r'^[a-zA-Z0-9][-a-zA-Z0-9_\.]*$')
 # Allow ':' in host part to cover IPv6 addresses
 FILEHOST = re.compile(r'^[a-zA-Z0-9:][-a-zA-Z0-9_\.:]*$')
 
 FILESETS = ('profiles', 'applications')
+
 
 def authenticate(f):
     """Require HTTP Basic Authentication from the GET/POST/...
@@ -53,7 +56,7 @@ def authenticate(f):
         # and pick up the user/password
         auth = self.request.headers.get('Authorization')
         if auth and auth.startswith('Basic '):
-            self.user,_,password = base64.b64decode(auth[6:]).decode("utf-8").partition(':')
+            self.user, _, password = base64.b64decode(auth[6:]).decode("utf-8").partition(':')
 
             # WARNING: check_user takes up lots of cpu time
             if account.check_user(self.user, password):
@@ -64,23 +67,26 @@ def authenticate(f):
                 return
 
         # Authentication required
-        self.set_status(401);
+        self.set_status(401)
         self.set_header('WWW-Authenticate', 'Basic realm="FLEXE"')
         self.finish()
 
     return wrap
+
 
 # Note: self must be explicitly passed
 def log_message(self, format, *args):
     logging.info("%s - - [%s] %s" %
                  (self.client_address[0],
                   self.log_date_time_string(),
-                  format%args))
+                  format % args))
+
 
 # Note: self must be explicitly passed
 def _json_reply(self, data):
     self.set_header('Content-type', 'application/json')
     self.write(data)
+
 
 # Note: self must be explicitly passed
 def _json_error(self, msg, id=None):
@@ -99,7 +105,8 @@ class SetPassword(tornado.web.RequestHandler):
             raise ServiceError("New password mismatch")
         if not account.password(self.user, params['oldpass'], params['newpass1']):
             raise ServiceError("Incorrect old password")
-        _json_reply(self, {'id': id, 'user': user, 'message': 'Password changed'})
+        _json_reply(self, {'id': id, 'user': self.user, 'message': 'Password changed'})
+
 
 class AddUser(tornado.web.RequestHandler):
 
@@ -114,6 +121,7 @@ class AddUser(tornado.web.RequestHandler):
             raise ServiceError("User '{}' already exists".format(params['username']))
         _json_reply(self, {'id': id, 'user': self.user, 'message': "User '{}' created".format(params['username'])})
 
+
 class GetHostByAddr(tornado.web.RequestHandler):
 
     @authenticate
@@ -127,15 +135,18 @@ class GetHostByAddr(tornado.web.RequestHandler):
                 result[ip] = None
         _json_reply(self, reply)
 
+
 class Switches(tornado.web.RequestHandler):
     @authenticate
     def get(self, id):
         # Provide a dummy reply for now...
-        reply = { 'id': id,
-                   'user': self.user,
-                   'result': {'local': ('127.0.0.1', 8888)}
+        reply = {
+            'id': id,
+            'user': self.user,
+            'result': {'local': ('127.0.0.1', 8888)}
         }
         _json_reply(self, reply)
+
 
 class FlexeHandler(tornado.web.RequestHandler):
 
@@ -155,14 +166,13 @@ class FlexeHandler(tornado.web.RequestHandler):
         return './' + dir + '/' + name + '@' + user, name, user
 
     def _file_name_out(self, path):
-        path = path.rpartition('/')[2] # Get bare filename
+        path = path.rpartition('/')[2]  # Get bare filename
         name, _, host = path.rpartition('@')
         if not name:
             return host
         if host == self.user:
             return name
         return path
-        
 
     @authenticate
     def delete(self, dir, name):
@@ -170,7 +180,7 @@ class FlexeHandler(tornado.web.RequestHandler):
             raise ServiceError("DELETE target not given: {}".format(self.request.path))
 
         try:
-            name = name[1:] # strip leading '/'
+            name = name[1:]  # strip leading '/'
             path, name, host = self._file_name_in(dir, name)
             # Use original input host
             if self.user != host:
@@ -187,7 +197,7 @@ class FlexeHandler(tornado.web.RequestHandler):
                                'message': "Removed '" + self._file_name_out(path) + "'"})
         except Exception as e:
             raise ServiceError("Delete '{}' failed: {}".format(name, str(e)))
-            
+
     @authenticate
     def post(self, dir, name):
         if name is None or name == '/':
@@ -203,7 +213,7 @@ class FlexeHandler(tornado.web.RequestHandler):
                 f.write(self.request.body)
         except Exception as e:
             raise ServiceError("failed saving '{}': {}".format(path, e))
-        _json_reply(self, {'id': dir, 'user': self.user, 'message': "Saved '" +self._file_name_out(path) + "'"})
+        _json_reply(self, {'id': dir, 'user': self.user, 'message': "Saved '" + self._file_name_out(path) + "'"})
 
     @authenticate
     def get(self, dir, name):
@@ -230,6 +240,7 @@ class FlexeHandler(tornado.web.RequestHandler):
             except Exception as e:
                 raise ServiceError("Failed reading file '{}': {}".format(path, str(e)))
 
+
 def main(args):
     app = tornado.web.Application([
         (r"/flexe/(profiles|applications)(/.*)?", FlexeHandler),
@@ -238,30 +249,31 @@ def main(args):
         (r"/flexe/(switches)", Switches),
         (r"/(GetHostByAddr)/(.*)", GetHostByAddr)
     ])
-#        (r"/(.*)", tornado.web.StaticFileHandler, {"path": conf.path(conf._CF['www_root']), "default_filename": "flexe.html"})
 
     if args.ssl is not None:
-
         if not conf._CF['client_key'] or not conf._CF['client_crt'] or not conf._CF['root_ca']:
-            print ("SSL Server option requires configured key/crt/root_ca")
+            print("SSL Server option requires configured key/crt/root_ca")
             return
-        server = tornado.httpserver.HTTPServer(app,dict(
+        server = tornado.httpserver.HTTPServer(app, dict(
             keyfile=conf.path(conf._CF['client_key']),
             certfile=conf.path(conf._CF['client_crt']),
             server_side=True,
-            cert_reqs= ssl.CERT_OPTIONAL if args.peer is None else ssl.CERT_REQUIRED,
+            cert_reqs=ssl.CERT_OPTIONAL if args.peer is None else ssl.CERT_REQUIRED,
             ca_certs=conf.path(conf._CF['root_ca'])))
     else:
         server = app
-    app.listen(args.port, address=args.addr)
+
+    server.listen(args.port, address=args.addr)
     tornado.ioloop.IOLoop.instance().start()
+
 
 def address_and_port(arg):
     ap = arg.rsplit(':', 1)
     if len(ap) == 2:
         return (ap[0], int(ap[1]))
     return (ap[0], 8888)
-    
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='FLEXE Controller',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -278,7 +290,8 @@ if __name__ == '__main__':
     parser.add_argument('--addr', help="Listening address", default=conf._CF['listen_addr'])
     parser.add_argument('--port', help="Listening port", type=int, default=conf._CF['listen_port'])
     parser.add_argument('--debug', help="Log into console", action='store_const', const=True)
-    parser.add_argument('--packet', help="List of the packet engine addresses as <host:port> pairs (web socket)", nargs='*', type=address_and_port, default=[('127.0.0.1', 8888)])
+    parser.add_argument('--packet', help="List of the packet engine addresses as <host:port> pairs (web socket)",
+                        nargs='*', type=address_and_port, default=[('127.0.0.1', 8888)])
 
     args = parser.parse_args()
     print(str(args))
@@ -296,7 +309,7 @@ if __name__ == '__main__':
 
     common_name = args.peer
     if args.ssl:
-        report = "Listening HTTPS on {}#{}".format(args.addr,args.port)
+        report = "Listening HTTPS on {}#{}".format(args.addr, args.port)
         # REVISIT: peer cert checking not working now with tornado?
         if args.peer is None:
             report += " -- peer certificate not required"
@@ -310,5 +323,5 @@ if __name__ == '__main__':
             report += " -- ignoring '-peer={}' checking"
     report += ", logs into " + logfile
     logging.info(report)
-    print (report)
+    print(report)
     main(args)

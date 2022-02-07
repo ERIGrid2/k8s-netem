@@ -2,7 +2,7 @@
 
 Copyright 2022, VTT Technical Research Centre of Finland Ltd.
 
-The above copyright notice and this license notice shall be included in all copies 
+The above copyright notice and this license notice shall be included in all copies
 or substantial portions of the Software
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -18,11 +18,13 @@ THE SOFTWARE.
 @author: Kimmo Ahola <kimmo.ahola@vtt.fi>
 
 '''
-import os, fcntl, sys
+import os
+import fcntl
 import socket
 import struct
 import errno
 import json
+
 
 def set_default(obj):
     if isinstance(obj, set):
@@ -31,20 +33,21 @@ def set_default(obj):
         return obj._asdict()
     return obj
 
+
 class Network (object):
     """ Class for managing and using TCP sockets. """
-    
+
     def __init__(self, socktype=socket.SOCK_STREAM, sct=None):
         """ Initialize internal class variables. """
         self._socket = sct
         self._type = socktype
-        #self.recv_buf = ''
+        # self.recv_buf = ''
         self.recv_buf = b''
         self.size = None
-            
+
     def __del__(self):
         """ Free used resources. """
-        if self._socket != None:
+        if self._socket is not None:
             self._socket.close()
 
     def socket(self):
@@ -62,7 +65,7 @@ class Network (object):
         """
         addr = self._socket.getpeername()
         if addr[0].startswith("::ffff:"):
-            addr = (addr[0][7:],) +  addr[1:]
+            addr = (addr[0][7:],) + addr[1:]
         return addr
 
     def getsockname(self):
@@ -70,7 +73,7 @@ class Network (object):
         """
         addr = self._socket.getsockname()
         if addr[0].startswith("::ffff:"):
-            addr = (addr[0][7:],) +  addr[1:]
+            addr = (addr[0][7:],) + addr[1:]
         return addr
 
     def close(self):
@@ -83,7 +86,7 @@ class Network (object):
 
     def createServerSocket(self, addr):
         """ Creates a server socket.
-        
+
             Args:
                 addr: Address and port to be used.
         """
@@ -94,15 +97,14 @@ class Network (object):
             if self._type == socket.SOCK_STREAM:
                 self._socket.listen(socket.SOMAXCONN)
             return
-        except socket.error as err:
+        except socket.error:
             self._socket.close()
             self._socket = None
             raise
-        
-        
+
     def createClientSocket(self, address, port=None):
         """ Creates a client socket.
-        
+
             Args:
                 address: Target domain name or raw address.
                 port: Server listening port
@@ -133,13 +135,12 @@ class Network (object):
                 try:
                     self._socket.connect(addr)
                     return
-                except socket.error as err:
+                except socket.error:
                     self._socket.close()
-            except socket.error as err:
+            except socket.error:
                 pass
             self._socket = None
         raise socket.error("No successful connection with address {}".format(address))
-
 
     # REVISIT: send/rcve as written now do not work with DATAGRAM
     # sockets (and such would not need the message framing either).
@@ -150,11 +151,11 @@ class Network (object):
         Exceptions:
 
             socket.error: if send reports an error
-        
+
         """
         total = 0
         while total < len(msg):
-            sent = self._socket.send(msg[total:],socket.MSG_WAITALL)
+            sent = self._socket.send(msg[total:], socket.MSG_WAITALL)
             if sent == 0:
                 raise socket.error("dead send socket")
             total += sent
@@ -174,7 +175,7 @@ class Network (object):
             msg += chunk
         return msg
 
-    def _send_frame(self, msg, opcode = 1):
+    def _send_frame(self, msg, opcode=1):
         # First proto websocket framing subset:
         # fin   : 1 (no fragmenting)
         # rsv1  : 0
@@ -182,7 +183,7 @@ class Network (object):
         # rsv3  : 0
         # opcode: opcode
         # mask  : 0 (no masking yet)
-        
+
         packed_hdr = ((1 << 7) | opcode).to_bytes(1, "big")
         length = len(msg)
         if length <= 125:
@@ -210,7 +211,7 @@ class Network (object):
     def send_async(self):
         """Send data asynchronously.
         TBD.
-        
+
         The asynchronous send should be called when there is pending
         data to be output and the socket indicates it is ready for
         more output.
@@ -294,7 +295,7 @@ class Network (object):
         data = struct.unpack_from(frmt, self.recv_buf[self.hdrsize:])[0]
         self.recv_buf = self.recv_buf[self.hdrsize+self.size:]
         if self.mask is not None:
-            data = ''.join(chr(data[i] ^ self.mask[i&3]) for i in range(len(data)))
+            data = ''.join(chr(data[i] ^ self.mask[i & 3]) for i in range(len(data)))
         self.size = None
         if self.opcode == 0x9:
             # Was ping, send pong
@@ -327,7 +328,7 @@ class Network (object):
             self.recv_buf = b''.join([self.recv_buf, chunk])
             eof = (len(chunk) == 0)
         except socket.error as err:
-            #print "sock error {}: {}".format(err, msg)
+            # print(f'sock error {err}: {msg}')
             if err.errno == errno.EAGAIN or err.errno == errno.EWOULDBLOCK or err.errno == errno.EINTR:
                 # NOTE: This is not EOF condition!!!
                 chunk = ''
@@ -349,6 +350,7 @@ class Network (object):
         """
         return self._socket.accept()
 
+
 def setPort(address, port):
     """
     Return address tuple with modified port
@@ -356,17 +358,18 @@ def setPort(address, port):
     (a, p, x, y) = address
     return (a, port, x, y)
 
+
 def printable(address):
     """
     Return address as a string formatted as "address#port".
     """
-    astr = address[0];
+    astr = address[0]
     # Crude solution to return IPv4 mapped address as plain IPv4
     if astr.startswith("::ffff:"):
         astr = astr[7:]
     return astr + '#' + str(address[1])
 
+
 def set_nonblock(sock):
     flags = fcntl.fcntl(sock, fcntl.F_GETFL) | os.O_NONBLOCK
     fcntl.fcntl(sock, fcntl.F_SETFL, flags)
-

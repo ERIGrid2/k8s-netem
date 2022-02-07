@@ -2,7 +2,7 @@
 
 Copyright 2022, VTT Technical Research Centre of Finland Ltd.
 
-The above copyright notice and this license notice shall be included in all copies 
+The above copyright notice and this license notice shall be included in all copies
 or substantial portions of the Software
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -27,8 +27,8 @@ CONF_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'conf/
 with open(CONF_PATH + "/server.json") as f:
     _CF = json.load(f)
 
+
 def path(path):
     """Return absolute path for the relative path specified in the configuration file
     """
     return os.path.normpath(os.path.join(CONF_PATH, path))
-
