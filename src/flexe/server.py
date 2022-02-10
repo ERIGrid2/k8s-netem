@@ -210,7 +210,7 @@ class FlexeHandler(tornado.web.RequestHandler):
             if not os.path.exists(directory):
                 os.makedirs(directory)
             with open(path, "w") as f:
-                f.write(self.request.body)
+                f.write(self.request.body.decode('UTF-8'))
         except Exception as e:
             raise ServiceError("failed saving '{}': {}".format(path, e))
         _json_reply(self, {'id': dir, 'user': self.user, 'message': "Saved '" + self._file_name_out(path) + "'"})
