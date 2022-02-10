@@ -26,6 +26,9 @@ import queue
 import base64
 import threading
 
+from typing import Dict
+from typing import AnyStr
+
 from k8s_netem.controller import Controller
 from k8s_netem.profile import Profile
 
@@ -167,8 +170,11 @@ class FlexeController(Controller):
                 if key == profile_name:
                     profile_info = prof.get(key)
             if profile_info is None:
-                self.logger.error('Profile unknown -> don\'t do anything')
-                return
+                self.logger.info('Profile unknown -> save profile for next time')
+                profile_info = parameter.get('parameters')
+                self.logger.info('Saved parameters: %s', profile_info)
+                self.save_profile(profile_info, profile_name)
+
             self.logger.info('KISAAH: Now updating profile: %s, profile_info: %s, parameter.name: %s, fwmark: %d',
                              profile, profile_info, profile_name, profile.mark)
             self.update_flexe(profile, profile_info, profile_name)
@@ -264,7 +270,7 @@ class FlexeController(Controller):
             self.logger.error('Format not recognized!')
             return
 
-        self.logger.debug('Received this message id: %d', id_of_message)
+        self.logger.debug('Received this message id: %s', id_of_message)
 
         if id_of_message == 'GetPacking':
             self.packing = data_received.get('result', None)
@@ -292,8 +298,10 @@ class FlexeController(Controller):
 
         elif id_of_message == 'ProfileTemplate':
             self.logger.info('Received ProfileTemplate -> forget it')
+        else:
+            self.logger.info('Something else: %s', data_received)
 
-    def handle_packing_message(self, msg):
+    def handle_packing_message(self, msg: Dict):
         '''
             Handle the received GetPacking message from Flexe Emulator
         '''
@@ -332,7 +340,7 @@ class FlexeController(Controller):
 
         # Now get more information from all profiles at the Flexe server
         for profile in profiles:
-            r = requests.get(f'{FLEXE_API_URL}/{profile}', auth=HTTPBasicAuth(FLEXE_USER, FLEXE_PASSWORD))
+            r = requests.get(f'{FLEXE_API_URL}/profiles/{profile}', auth=HTTPBasicAuth(FLEXE_USER, FLEXE_PASSWORD))
             if r.status_code != 200:
                 self.logger.debug('Getting more information about the profile failed with status code %d -> bailing out', r.status_code)
                 return
@@ -340,3 +348,25 @@ class FlexeController(Controller):
                 self.flexe_profiles.append({profile: r.json()})
 
         self.logger.debug('Now all profiles have fetched and data in: %s', self.flexe_profiles)
+
+    def save_profile(self, profile_data: Dict, name: AnyStr):
+        '''
+            Save profile using Flexe Emulator REST API
+        '''
+
+        headers = {
+            'Content-Type': 'application/json'
+        }
+
+        r = requests.post(f'{FLEXE_API_URL}/profiles/{name}', auth=HTTPBasicAuth(FLEXE_USER, FLEXE_PASSWORD),
+                          data=json.dumps(profile_data),
+                          headers=headers)
+
+        # Expected reply
+        # {'id': 'profiles', 'user': 'userX', 'message': 'Saved name'})
+        if r.status_code != 200:
+            self.logger.error('Save profiles failed with status code %d -> bailing out', r.status_code)
+        else:
+            if r.json() is not None:
+                message = r.json().get('message')
+                self.logger.info('Message: %s', message)
