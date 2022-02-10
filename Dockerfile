@@ -6,7 +6,7 @@ RUN apt-get update && \
         python3-nftables \
         iproute2 \
         supervisor \
-        iproute2
+        python3-websocket
 
 # Add python3-nftables to system path
 ENV PYTHONPATH=/usr/lib/python3/dist-packages/
@@ -19,6 +19,8 @@ COPY etc/supervisord.conf /etc/
 RUN mkdir /src
 WORKDIR /src
 COPY . /src
+COPY src/flexe/profiles /src/profiles/
+
 RUN pip install -e .
 
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]

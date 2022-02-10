@@ -5,6 +5,5 @@ inotify
 jsonschema
 tornado
 requests
-websocket-client
 passlib
 netaddr
