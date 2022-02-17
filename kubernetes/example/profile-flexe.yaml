@@ -13,9 +13,7 @@ spec:
 
   parameters:
     segments:
-    - profile: ethernet
-      start: 0
-      end: 1
+    - repeat: True
 
     profiles:
     - name: ethernet
@@ -31,6 +29,21 @@ spec:
         corruption: 0
         reorder: 0
         reorderCorrelation: 0
+        runTime: 30
+    - name: 3g
+      parameters:
+        bandwidthUp: 256
+        bandwidthDown: 256
+        delay: 200
+        delayVariation: 50
+        delayCorrelation: 0
+        loss: 0.5
+        lossCorrelation: 0
+        duplication: 0.1
+        corruption: 0.1
+        reorder: 0.2
+        reorderCorrelation: 0
+        runTime: 30
 
   egress:
   - to:

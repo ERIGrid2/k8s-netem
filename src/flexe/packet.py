@@ -949,7 +949,7 @@ def exporter():
                         msg = rdy.rcve_async(do_read)
                         if msg is None:
                             break
-                        log(EXPORTER, "Got from rcve_async: {}".format(msg))
+                        # log(EXPORTER, "Got from rcve_async: {}".format(msg))
                         try:
                             id = msg.get('id')
                             if 'user' in msg:
@@ -1015,9 +1015,9 @@ def exporter():
                                     #  2: filter mask
                                     #  3: uplink (true), downlink (false)
                                     reply['filters'] = [(pl[i],
-                                                         b64encode(int_to_bytes(f[0])),
-                                                         b64encode(int_to_bytes(f[1])),
-                                                         f[2].dir) for i, f in enumerate(rdy.filters)]
+                                                        b64encode(int_to_bytes(f[0])).decode('UTF-8'),
+                                                        b64encode(int_to_bytes(f[1])).decode('UTF-8'),
+                                                        f[2].dir) for i, f in enumerate(rdy.filters)]
                                 # client==0 indicates own application for the client
                                 rdy.send(reply)
                                 # Inform all other clients
