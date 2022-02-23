@@ -35,6 +35,9 @@ import subprocess
 from threading import Timer
 import logging
 
+logger = logging.getLogger("flexe.packet")
+exporter_logger = logging.getLogger("flexe.exporter")
+
 IF_ALL = (1 << 53) - 1
 
 THROTTLE_DELAY = 0.2
@@ -163,15 +166,6 @@ PROFILE_TEMPLATE = [
 
 CLIENTS: set = set()
 
-logger = logging.getLogger('Flexe packet')
-CLIENTHANDLE = "ClientHandle"
-EXPORTER = "Exporter"
-
-
-def log(client_name, msg):
-    print("{}: {}".format(client_name, msg), flush=True)
-    # logger.info("{}: {}".format(client_name, msg))
-
 
 def bytes_to_int(s):
     """Convert key byte array to a long integer
@@ -264,7 +258,7 @@ class ClientHandle(net.Network):
         self.outbound = filter_key_mask(sockname, peername)
 
         self.interfaces = 0  # bitmask of interfaces configured
-        log(CLIENTHANDLE, "got client {} peer={} sock={}".format(self.id, peername, sockname))
+        logger.info("Got client %s peer=%s sock=%s", self.id, peername, sockname)
 
     def _tc_run(self, command, timeout=5):
         """ Run sub-process with a time limit.
@@ -277,7 +271,7 @@ class ClientHandle(net.Network):
         def kill_proc(p):
             p.kill()
 
-        log(CLIENTHANDLE, "_tc_run: " + command)
+        logger.debug("Run: %s", command)
         proc = subprocess.Popen(command, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, shell=True)
 
@@ -286,7 +280,7 @@ class ClientHandle(net.Network):
         out, err = proc.communicate()
         timer.cancel()
 
-        log(CLIENTHANDLE, "_tc_run_after: {}, err: {} ".format(command, err))
+        logger.debug("Run after: %s, err: %s ", command, err)
 
         send_to_all(CLIENTS, {'id': TCCOMMAND,
                               'cmd': command,
@@ -553,12 +547,12 @@ class ClientHandle(net.Network):
                     del profile['lifeTime']
 
         if len(redo) == 0:
-            # log(self, "delay: {} -- no redo".format(delay))
+            # logger.info("Delay: %s -- no redo", delay)
             return delay, None
 
         # Record actual profiles used
         if self.profiles is None:
-            # log(self, "delay: {} -- no profiles".format(delay))
+            # logger.info("Delay: %s -- no profiles", delay)
             return delay, None
         i = 0
         profiles_used = {}
@@ -590,7 +584,7 @@ class ClientHandle(net.Network):
         if len(profiles_used) == 0:
             # No profiles left, terminate application cleanly (remove all definitions)
             self.unrun(INTERFACES)
-        # log(self, "delay: {} -- profiles {}".format(delay, str(profiles_used)))
+        # logger.info("Delay: %s -- profiles %s", delay, profiles_used)
         return delay, profiles_used
 
     def run(self, msg, INTERFACES):
@@ -723,7 +717,7 @@ class ClientHandle(net.Network):
     def check_send(self, msg):
         ret = self._socket.send(bytes(msg, "utf-8"))
         if ret != len(msg):
-            log(CLIENTHANDLE, "{} != {} for '{}'".format(ret, len(msg), msg))
+            logger.info("Check send failed: %d != %d for '%s'", ret, len(msg), msg)
 
     def rcve_async(self, do_read=True):
         while True:
@@ -761,7 +755,7 @@ class ClientHandle(net.Network):
             self.msg = after
             if line == '':
                 # End Of Headers
-                log(CLIENTHANDLE, "Handshaking...")
+                logger.info("Handshaking...")
                 key = self.header.get('sec-websocket-key')
                 if key is None:
                     raise socket.error("Missing Sec-WebSocket-Key header")
@@ -782,7 +776,7 @@ class ClientHandle(net.Network):
                 self.check_send('Sec-WebSocket-Accept: ' + hash_base64 + '\r\n')
                 self.check_send('\r\n')
                 self.websocket = True
-                log(CLIENTHANDLE, "Handshaking complete...")
+                logger.info("Handshaking complete...")
             elif self.linenr == 0:
                 # This line should be the GET request
                 parts = line.strip().split()
@@ -790,7 +784,7 @@ class ClientHandle(net.Network):
                     raise socket.error("Invalid request line: '{}'".format(line))
                 self.path = parts[1]
             elif line.startswith(' ') or line.startswith('/t'):
-                log(CLIENTHANDLE, "got continuation")
+                logger.info("Got continuation")
                 # This is a continuation line for previous field
                 if self.field is None:
                     raise socket.error("Invalid header continuation line: '{}'".format(line))
@@ -808,7 +802,7 @@ class ClientHandle(net.Network):
                 else:
                     self.header[self.field] = value
             self.linenr += 1
-            log(CLIENTHANDLE, line)
+            logger.debug(line)
 
 
 def _mac(mac):
@@ -862,7 +856,7 @@ def send_to_all(clients, msg, butone=None):
 
 
 def exporter():
-    log(EXPORTER, "pid={}".format(os.getpid()))
+    exporter_logger.info("PID=%d", os.getpid())
     wss = ServerHandle()
     wss.createServerSocket(('', 8888))
 
@@ -883,7 +877,7 @@ def exporter():
 
     while busy:
         if (cycles & 0xffff) == 0:
-            log(EXPORTER, "cycles={}".format(cycles))
+            exporter_logger.info("Cycles=%d", cycles)
         cycles += 1
 
         (sread, swrite, sexc) = select.select(WATCHED, [], WATCHED, timeout)
@@ -916,7 +910,7 @@ def exporter():
                 c.flush_counts()
             except Exception as e:
                 # NOTE: this branch is most likely untested...
-                log(EXPORTER, "closing client: " + str(c.id) + " error: " + str(e))
+                exporter_logger.info("Closing client: %s error: %s", c.id, e)
                 if c is running:
                     c.unrun(INTERFACES)
                     c.close()
@@ -949,7 +943,7 @@ def exporter():
                         msg = rdy.rcve_async(do_read)
                         if msg is None:
                             break
-                        # log(EXPORTER, "Got from rcve_async: {}".format(msg))
+                        # exporter_logger.info("Got from rcve_async: %s", msg)
                         try:
                             id = msg.get('id')
                             if 'user' in msg:
@@ -1029,10 +1023,10 @@ def exporter():
                             rdy.error(msg, str(e))
                         do_read = False
                 except Exception as e:
-                    log(EXPORTER, "*** Closing client: {} ***".format(str(e)))
-                    log(EXPORTER, '-'*60)
+                    exporter_logger.info('Closing client: %s ***', e)
+                    exporter_logger.info('-'*60)
                     traceback.print_exc(file=sys.stdout)
-                    log(EXPORTER, '-'*60)
+                    exporter_logger.info('-'*60)
                     if rdy is running:
                         rdy.unrun(INTERFACES)
                         running = None
@@ -1042,12 +1036,12 @@ def exporter():
                     CLIENTS.remove(rdy)
                     WATCHED.remove(rdy)
     for c in CLIENTS:
-        log(EXPORTER, "closing client: ", c.id)
+        exporter_logger.info("Closing client: %s", c.id)
         if c is running:
             c.unrun(INTERFACES)
         c.close()
     wss.close()
-    log(EXPORTER, "exporter exit")
+    exporter_logger.info("Exporter exit")
 
 
 def main():
