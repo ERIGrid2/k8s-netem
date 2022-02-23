@@ -293,7 +293,7 @@ class FlexeController(Controller):
         # Handle the runApplication message creation
         run_msg = self.handle_run_message_creation(profile)
 
-        # Check if the egress profile name is empty -> Flexe NetEm will clear the rules. 
+        # Check if the egress profile name is empty -> Flexe NetEm will clear the rules.
         # Also there is no need to send the filter message to Flexe NetEm
         profiles = run_msg.get('profiles', None)
         if mode == "delete" or profiles[0][1] == '' or profiles[0][1] is None:
@@ -306,7 +306,7 @@ class FlexeController(Controller):
             filter_msg = {}
             while len(filter_msg) < 1:
                 filter_msg = self.handle_filter_creation(profile)
-                # If length of filter_msg is zero, there is need to wait a little bit 
+                # If length of filter_msg is zero, there is need to wait a little bit
                 # so WebSocket receives needed information from Flexe NetEm
                 if len(filter_msg) == 0:
                     time.sleep(1)
