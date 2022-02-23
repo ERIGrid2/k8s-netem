@@ -49,6 +49,7 @@ spec:
   - to:
     - ipBlock:
         cidr: 1.1.1.1/32
+
     - podSelector:
         matchLabels:
           component: example
@@ -57,8 +58,11 @@ spec:
       protocol: TCP
     - port: 53
       protocol: UDP
-    - port: 0
-      protocol: ICMP
+
+  - to:
+    - ipBlock:
+        cidr: 8.8.8.8/32
+
   - ports:
     - port: 80
       protocol: tcp
