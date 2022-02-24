@@ -16,7 +16,6 @@ spec:
 
   egress:
 
-
   # Run 'nft describe ether_type' for a list of pre-defined symbolic constants
   # https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
   - etherTypes:
@@ -32,7 +31,7 @@ spec:
     - ipv4
     - icmp
 
-    - ipv46
+    - ipv6
     - ipv6-icmp
 
     - 0x1 # ICMP
@@ -45,6 +44,7 @@ spec:
           component: example
 
   # https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
+  # Supported protocols are: UDP, TCP, SCTP, UDPlite
   - ports:
     - port: 443
       protocol: TCP

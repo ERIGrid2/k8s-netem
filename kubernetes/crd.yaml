@@ -335,3 +335,4 @@ spec:
                             type: integer
                           protocol:
                             type: string
+                            pattern: '^(UDP|TCP|SCTP|UDPlite)$'

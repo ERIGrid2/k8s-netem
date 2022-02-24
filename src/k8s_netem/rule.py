@@ -179,50 +179,59 @@ class Rule(Resource):
               }
             ]
 
+        is_inet = len(self.ether_types) == 0 or any(x in ['ip', 'ip6', 0x800, 0x86DD] for x in self.ether_types)
+
         # If at least one peer is provided in the spec,
         # we will match against the associated networks
         # even if the selectors are not matching any pods
         if len(self.peers) > 0:
-            exprs += [
-              {
-                'match': {
-                  'left': {
-                    'payload': {
-                      'protocol': 'ip',
-                      'field': 'daddr'
-                    }
-                  },
-                  'right': f'@{self.set_nets_name}',
-                  'op': '=='
-                }
-              }
-            ]
-
-        if len(self.ports):
-            exprs += [
-              {
-                'match': {
-                  'left': {
-                    'concat': [
-                      {
-                        'meta': {
-                            'key': 'l4proto'
+            if is_inet:
+                exprs += [
+                  {
+                    'match': {
+                      'left': {
+                        'payload': {
+                          'protocol': 'ip',
+                          'field': 'daddr'
                         }
                       },
-                      {
-                        # Match both UDP and TCP ports here
-                        'payload': {
-                            'protocol': 'th',
-                            'field': 'dport'
-                        }
-                      }
-                    ]
-                  },
-                  'right': f'@{self.set_ports_name}',
-                  'op': '=='
-                }
-              }
-            ]
+                      'right': f'@{self.set_nets_name}',
+                      'op': '=='
+                    }
+                  }
+                ]
+            else:
+                self.logger.warn('Attempted to filter based-on source/destination IP on non-IPv4/IPv6 etherType')
+
+        if len(self.ports):
+            has_th_ports = is_inet and (len(self.inet_protos) == 0 or any(x in ['udp', 'udplite', 'tcp', 'sctp', 17, 136, 6, 132] for x in self.ether_types))
+            if has_th_ports:
+                exprs += [
+                  {
+                    'match': {
+                      'left': {
+                        'concat': [
+                          {
+                            'meta': {
+                              'key': 'l4proto'
+                            }
+                          },
+                          {
+                            # Match both UDP and TCP ports here
+                            'payload': {
+                              'protocol': 'th',
+                              'field': 'dport'
+                            }
+                          }
+                        ]
+                      },
+                      'right': f'@{self.set_ports_name}',
+                      'op': '=='
+                    }
+                  }
+                ]
+            else:
+                self.logger.warn('Attempted to filter based-on port number on non-UDP/TCP/UDPlite/SCTP transport protocol')
 
         exprs += [
           {
