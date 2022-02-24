@@ -35,8 +35,8 @@ import subprocess
 from threading import Timer
 import logging
 
-logger = logging.getLogger("flexe.packet")
-exporter_logger = logging.getLogger("flexe.exporter")
+logger = logging.getLogger('flexe.packet')
+exporter_logger = logging.getLogger('flexe.exporter')
 
 IF_ALL = (1 << 53) - 1
 
@@ -58,12 +58,12 @@ KEYPACK = [
     (1, 'int', 'iface', 'Interface number'),
     (4, 'int', 'fwmark', 'Firewall mark')
 ]
+
 # Key length in bytes
 KEY_LENGTH = sum(f[0] for f in KEYPACK)
 KEY_FMT = '%%0%dx' % (2*KEY_LENGTH)
 
 # This tells the GUI client the supported profile parameters.
-
 PROFILE_INT_MS = {'type': 'int', 'unit': 'ms'}
 PROFILE_INT_S = {'type': 'int', 'unit': 's'}
 PROFILE_INT_PERCENT = {'type': 'int', 'unit': '%'}
@@ -168,20 +168,20 @@ CLIENTS: set = set()
 
 
 def bytes_to_int(s):
-    """Convert key byte array to a long integer
-    """
+    '''Convert key byte array to a long integer
+    '''
     return int(hexlify(s), 16)
 
 
 def int_to_bytes(key):
-    """Convert integer key into bytes array
-    """
+    '''Convert integer key into bytes array
+    '''
     return unhexlify(KEY_FMT % key)
 
 
 def filter_key_mask(source, target):
-    """Generate filter key and mask for source/target socket addresses
-    """
+    '''Generate filter key and mask for source/target socket addresses
+    '''
     key = ''
     mask = ''
     for field in KEYPACK:
@@ -200,11 +200,11 @@ def filter_key_mask(source, target):
         else:
             key += '\0' * field[0]
             mask += '\0' * field[0]
-    return (bytes_to_int(bytes(key, "utf-8")), bytes_to_int(bytes(mask, "utf-8")))
+    return (bytes_to_int(bytes(key, 'utf-8')), bytes_to_int(bytes(mask, 'utf-8')))
 
 
 class ServerHandle(net.Network):
-    """Listening socket
+    '''Listening socket
 
     Each instance represents a listening socket on the server.
 
@@ -212,7 +212,7 @@ class ServerHandle(net.Network):
     set the 'isserver' attribute to True, so that the main loop knows
     to issue 'accept' instead of 'read' action, when the socket
     becomes readable.
-    """
+    '''
     isserver = True
     id = 0
 
@@ -222,11 +222,11 @@ class ServiceError(Exception):
 
 
 class ClientHandle(net.Network):
-    """Connected Client Socket
+    '''Connected Client Socket
 
     Each instance represents a connected client socket created by the
     'accept' action on the listening server socket.
-    """
+    '''
     isserver = False
     id = 0
 
@@ -258,20 +258,20 @@ class ClientHandle(net.Network):
         self.outbound = filter_key_mask(sockname, peername)
 
         self.interfaces = 0  # bitmask of interfaces configured
-        logger.info("Got client %s peer=%s sock=%s", self.id, peername, sockname)
+        logger.info('Got client %s peer=%s sock=%s', self.id, peername, sockname)
 
     def _tc_run(self, command, timeout=5):
-        """ Run sub-process with a time limit.
+        ''' Run sub-process with a time limit.
 
         Args:
             command: Sub-process command.
             timeout: Value in seconds.
 
-        """
+        '''
         def kill_proc(p):
             p.kill()
 
-        logger.debug("Run: %s", command)
+        logger.debug('Run: %s', command)
         proc = subprocess.Popen(command, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, shell=True)
 
@@ -280,7 +280,7 @@ class ClientHandle(net.Network):
         out, err = proc.communicate()
         timer.cancel()
 
-        logger.debug("Run after: %s, err: %s ", command, err)
+        logger.debug('Run after: %s, err: %s', command, err)
 
         send_to_all(CLIENTS, {'id': TCCOMMAND,
                               'cmd': command,
@@ -306,7 +306,7 @@ class ClientHandle(net.Network):
                 continue
 
             if name in {'vlan1', 'vlan2'}:
-                raise ServiceError("Filtering based on vlan not yet supported: " + name)
+                raise ServiceError(f'Filtering based on vlan not yet supported: {name}')
 
             if type == 'ip':
                 value = netaddr.IPAddress(value, 6)
@@ -315,19 +315,20 @@ class ClientHandle(net.Network):
                     # IPv4 mapped address
                     mask = netaddr.IPAddress(int(mask) & 0xffffffff, 4)
                     value = value.ipv4()
-                    net = netaddr.IPNetwork(str(value) + "/" + str(mask))
+                    net = netaddr.IPNetwork(f'{value}/{mask}')
                     if net.prefixlen == 32:
                         net = value
-                    selector += ' match ip {} {}'.format(name, str(net))
+                    selector += f' match ip {name} {net}'
                     protocol = 'ip'
                     ipv = 'ip'
                 else:
-                    net = netaddr.IPNetwork(str(value) + "/" + str(mask))
+                    net = netaddr.IPNetwork(f'{value}/{mask}')
                     if net.prefixlen == 128:
                         net = value
-                    selector += ' match ip6 {} {}'.format(name, str(net))
+                    selector += f' match ip6 {name} {net}'
                     protocol = 'ipv6'
                     ipv = 'ip6'
+
             elif name == 'ipv':
                 print(name, value)
                 if value == 6:
@@ -337,8 +338,9 @@ class ClientHandle(net.Network):
                     # protocol number
                     protocol = 'ipv6'
                     ipv = 'ip6'
+
             elif name == 'proto':
-                selector += ' match {} protocol {} {:#02x}'.format(ipv, value, mask)
+                selector += f' match {ipv} protocol {value} {mask:#02x}'
                 if value == 1:
                     ipv = 'icmp'
                     protocol = 'ip'
@@ -349,20 +351,24 @@ class ClientHandle(net.Network):
                     ipv = 'tcp'
                 elif value == 17:
                     ipv = 'udp'
+
             elif name == 'sport' or name == 'dport':
                 if ipv == 'icmp':
                     if name == 'dport':
-                        selector += ' match icmp type {} {:#02x}'.format(value >> 8, mask >> 8)
-                        selector += ' match icmp code {} {:#02x}'.format(value & 0xff, mask & 0xff)
+                        selector += f' match icmp type {value >> 8} {mask >> 8:#02x}'
+                        selector += f' match icmp code {value & 0xff} {mask & 0xff:#02x}'
                 elif ipv == 'tcp' or ipv == 'udp':
                     name = 'src' if name == 'sport' else 'dst'
-                    selector += ' match {} {} {} {:#04x}'.format(ipv, name, value, mask)
+                    selector += f' match {ipv} {name} {value} {mask:#04x}'
                 else:
-                    selector += ' match {} {} {} {:#04x}'.format(ipv, name, value, mask)
+                    selector += f' match {ipv} {name} {value} {mask:#04x}'
+
             elif name == 'smac':
-                selector += ' match ether src ' + _mac(value)
+                selector += f' match ether src {_mac(value)}'
+
             elif name == 'dmac':
-                selector += ' match ether dst ' + _mac(value)
+                selector += f' match ether dst {_mac(value)}'
+
             elif name == 'iface':
                 # This indicates either inbound or outbound interface,
                 # if present, limits flow exactly to packets coming in
@@ -372,44 +378,48 @@ class ClientHandle(net.Network):
                 # installing netem on that. => 'iface' really should
                 # not be included in filter spec!
                 pass
-            elif name == "type":
+
+            elif name == 'type':
                 # If Ethernet type is IP, then there is no need to anything
                 # But if the Ethernet Type is something else, there is need to change protocol type
                 # and selector.
                 if value != 2048:
-                    print("DEBUG: Not IP packet -> act accordingly")
+                    logger.debug('Not IP packet -> act accordingly')
                     protocol = 'all'
-                    mac_selector = 'u32 match u16 {:#04x} 0xffff at -2'.format(value)
+                    mac_selector = f'u32 match u16 {value:#04x} 0xffff at -2'
                     break
                 else:
-                    print("DEBUG: IP packet -> do nothing")
-                # print("DEBUG: Type = Ethernet type, selector = {}, value = {}, mask = {}".format(selector, value, mask))
-            elif name == "fwmark":
-                # If the "type" == int and name == "fwmark", then only use fw_mark as a filter
+                    logger.debug('IP packet -> do nothing')
+                # logger.debug('Type = Ethernet type, selector = %s, value = %s, mask = %s', selector, value, mask)
+
+            elif name == 'fwmark':
+                # If the 'type' == int and name == 'fwmark', then only use fw_mark as a filter
                 protocol = 'fw'
-                selector = "handle {}".format(value & mask)
+                selector = f'handle {value & mask}'
+
             else:
-                raise ServiceError("Unsupported filter: " + name)
+                raise ServiceError(f'Unsupported filter: {name}')
 
         if selector == '':
-            # Add dummy "match all", if nothing else matched
+            # Add dummy 'match all', if nothing else matched
             selector += ' match u8 0 0'
 
         if protocol == 'ipv6':
-            selector = 'u32 ht 6:' + selector
+            selector = f'u32 ht 6:{selector}'
         elif protocol == 'ip':
-            selector = 'u32 ht 4:' + selector
+            selector = f'u32 ht 4:{selector}'
         elif protocol == 'all':
             selector = mac_selector
 
         return (protocol, selector)
 
     def _load_profile(self, profile):
-        # profile is interpreted as:
-        #
-        #   name - try "name@user" first and then "name"
-        #   name@host - try only "name@host"
-        #
+        '''profile is interpreted as:
+
+           name - try 'name@user' first and then 'name'
+           name@host - try only 'name@host'
+        '''
+
         profile = profile.strip()
         if profile == '':
             return None
@@ -421,7 +431,7 @@ class ClientHandle(net.Network):
 
         data = self.profile_data.get(profile)
         if data is None:
-            raise ServiceError("profile '{}' has not been provided by client".format(profile))
+            raise ServiceError(f'profile "{profile}" has not been provided by client')
 
         head = {}
         self.run_profiles[profile] = head
@@ -453,37 +463,44 @@ class ClientHandle(net.Network):
         value = data.get('delay')
         if value:
             variation = data.get('delayVariation', 0)
-            netem += ' delay {}ms {}ms'.format(value, variation)
+            netem += f' delay {value}ms {variation}ms'
             correlation = data.get('delayCorrelation', 0)
             if correlation > 0:
-                netem += ' {}%'.format(correlation)
+                netem += f' {correlation}%'
+
         value = data.get('delayDistribution')
         if value and value in PROFILE_DELAY_DISTRIBUTION['option']:
-            netem += ' distribution ' + value
+            netem += f' distribution {value}'
+
         value = data.get('loss', 0)
         correlation = data.get('lossCorrelation', 0)
         if correlation > 0 or value > 0:
-            netem += ' loss {}%'.format(value)
+            netem += f' loss {value}%'
             if correlation > 0:
-                netem += ' {}%'.format(correlation)
+                netem += f' {correlation}%'
+
         value = data.get('duplication')
         if value:
-            netem += ' duplicate {}%'.format(value)
+            netem += f' duplicate {value}%'
+
         value = data.get('duplication')
         if value:
-            netem += ' corrupt {}%'.format(value)
+            netem += f' corrupt {value}%'
+
         value = data.get('reorder', 0)
         correlation = data.get('reorderCorrelation', 0)
         if correlation > 0 or value > 0:
-            netem += ' reorder {}%'.format(value)
+            netem += f' reorder {value}%'
             if correlation > 0:
-                netem += ' {}%'.format(correlation)
+                netem += f' {correlation}%'
+
         if uplink:
-            value = data.get("bandwidthUp")
+            value = data.get('bandwidthUp')
         else:
-            value = data.get("bandwidthDown")
+            value = data.get('bandwidthDown')
         if value:
-            netem += ' rate {}kbit'.format(value)
+            netem += f' rate {value}kbit'
+
         return netem
 
     def unrun(self, INTERFACES):
@@ -492,11 +509,14 @@ class ClientHandle(net.Network):
         self.profile_data = None
         self.profiles = None
         initialized = 0
+
         for iface in iter(INTERFACES.values()):
             if iface[1] & self.interfaces:
                 initialized |= iface[1]
-                self._tc_run('tc qdisc del dev {} root'.format(iface[0]))
+                self._tc_run(f'tc qdisc del dev {iface[0]} root')
+
         self.interfaces = 0
+
         return initialized
 
     def rerun(self, INTERFACES, delay):
@@ -507,9 +527,11 @@ class ClientHandle(net.Network):
         for egress, profile in iter(self.run_profiles.items()):
             if profile is None:
                 continue
+
             lifetime = profile.get('lifeTime', 0)
             if lifetime == 0:
                 continue
+
             if lifetime > now:
                 alive = lifetime - now
                 if alive < delay:
@@ -523,6 +545,7 @@ class ClientHandle(net.Network):
             start = profile['index'] + 1
             end = data['run']['end']
             redo.add(egress)  # changing segment, some tc update will be needed
+
             for index, curr in enumerate(data['segments'][start:end], start=start):
                 profile.update(curr)
                 profile['index'] = index
@@ -536,6 +559,7 @@ class ClientHandle(net.Network):
                 # Duration == profile['runTime'] == 0 (segments with
                 # zero runTime are ignored, except as the last
                 # segment).
+
             else:
                 # No live segments left, the profile represents the last segment.
                 lifetime = profile.get('runTime', 0)
@@ -547,12 +571,12 @@ class ClientHandle(net.Network):
                     del profile['lifeTime']
 
         if len(redo) == 0:
-            # logger.info("Delay: %s -- no redo", delay)
+            # logger.info('Delay: %s -- no redo', delay)
             return delay, None
 
         # Record actual profiles used
         if self.profiles is None:
-            # logger.info("Delay: %s -- no profiles", delay)
+            # logger.info('Delay: %s -- no profiles', delay)
             return delay, None
         i = 0
         profiles_used = {}
@@ -563,6 +587,7 @@ class ClientHandle(net.Network):
             i += 1
             if not egress:
                 continue  # filter does not have netem
+
             netem = classes.get((egress, info.dir))
             if netem is None:
                 profile = self.run_profiles[egress]
@@ -574,22 +599,25 @@ class ClientHandle(net.Network):
                     classes[(egress, info.dir)] = netem
                 else:
                     netem = 'netem'  # Remove profile for this filter
+
             minor = 10 + i
             if egress not in redo:
                 continue
+
             for iface in iter(INTERFACES.values()):
                 if iface[1] & info.out:
                     if netem:
-                        self._tc_run('tc qdisc replace dev {} parent 1:{:X} handle {:X}: {}'.format(iface[0], minor, i*10, netem))
+                        self._tc_run(f'tc qdisc replace dev {iface[0]} parent 1:{minor:X} handle {i*10:X}: {netem}')
         if len(profiles_used) == 0:
             # No profiles left, terminate application cleanly (remove all definitions)
             self.unrun(INTERFACES)
-        # logger.info("Delay: %s -- profiles %s", delay, profiles_used)
+
+        # logger.info('Delay: %s -- profiles %s', delay, profiles_used)
         return delay, profiles_used
 
     def run(self, msg, INTERFACES):
         # msg = {
-        #   id: "RunApplication",
+        #   id: 'RunApplication',
         #   user: <user_name>
         #   fid: <filter id>
         #   profiles: [ [<ingress profile>, <egress profile>], ...]
@@ -601,13 +629,14 @@ class ClientHandle(net.Network):
         #     }
         #   }
         # }
+
         initialized = self.unrun(INTERFACES)
         self.run_profiles = {}
         self.profiles = msg.get('profiles')
         self.profile_data = msg.get('profile_data', {})
 
         if self.filter_id != msg.get('fid'):
-            raise ServiceError("Filter id mismatch")
+            raise ServiceError('Filter id mismatch')
 
         # Record actual profile segments in use
         profiles_used = {}
@@ -615,7 +644,7 @@ class ClientHandle(net.Network):
             return profiles_used
 
         if len(self.filters) != len(self.profiles):
-            raise ServiceError("Incorrect number of profiles")
+            raise ServiceError('Incorrect number of profiles')
 
         i = 0
         classes = {}
@@ -632,39 +661,42 @@ class ClientHandle(net.Network):
                     profiles_used[egress] = data
                     classes[(egress, info.dir)] = netem
                 minor = 10 + i
+
             else:
                 minor = 1
                 netem = None
+
             protocol, selector = self._tc_filter(filter)
 
-            print("DEBUG: Now protocol = {} and selector = {}, egress = {}, netem = {}".format(protocol, selector, egress, netem))
+            logger.debug('Now protocol = %s and selector = %s, egress = %s, netem = %s', protocol, selector, egress, netem)
 
             for iface in iter(INTERFACES.values()):
                 if iface[1] & info.out:
-                    fp = 'tc filter add dev {} '.format(iface[0])
+                    fp = f'tc filter add dev {iface[0]}'
                     if (iface[1] & self.interfaces) == 0:
                         # Initialize only new interfaces
                         if (iface[1] & initialized) == 0:
-                            self._tc_run('tc qdisc del dev {} root'.format(iface[0]))
+                            self._tc_run(f'tc qdisc del dev {iface[0]} root')
                             initialized |= iface[1]
                         self.interfaces |= iface[1]
-                        self._tc_run('tc qdisc add dev {} handle 1: root htb'.format(iface[0]))
-                        self._tc_run('tc class add dev {} parent 1: classid 1:1 htb rate 1000Mbps'.format(iface[0]))
+                        self._tc_run(f'tc qdisc add dev {iface[0]} handle 1: root htb')
+                        self._tc_run(f'tc class add dev {iface[0]} parent 1: classid 1:1 htb rate 1000Mbps')
 
                         # The following commands are run only when filter protocol is IP
-                        if protocol == "ip":
-                            self._tc_run(fp + 'parent 1: protocol ip handle 4: u32 divisor 1')
-                            self._tc_run(fp + 'parent 1: protocol ipv6 handle 6: u32 divisor 1')
-                            self._tc_run(fp + 'parent 1: protocol ip u32 ht 800: match u8 0 0 offset at 0 mask 0f00 shift 6 link 4:')
-                            self._tc_run(fp + 'parent 1: protocol ipv6 u32 ht 800: match u8 0 0 offset plus 40 link 6:')
+                        if protocol == 'ip':
+                            self._tc_run(f'{fp} parent 1: protocol ip handle 4: u32 divisor 1')
+                            self._tc_run(f'{fp} parent 1: protocol ipv6 handle 6: u32 divisor 1')
+                            self._tc_run(f'{fp} parent 1: protocol ip u32 ht 800: match u8 0 0 offset at 0 mask 0f00 shift 6 link 4:')
+                            self._tc_run(f'{fp} parent 1: protocol ipv6 u32 ht 800: match u8 0 0 offset plus 40 link 6:')
                     if netem:
-                        self._tc_run('tc class add dev {} parent 1:1 classid 1:{:X} htb rate 100Mbps'.format(iface[0], minor))
-                        self._tc_run('tc qdisc add dev {} parent 1:{:X} handle {:X}: {}'.format(iface[0], minor, i*10, netem))
+                        self._tc_run(f'tc class add dev {iface[0]} parent 1:1 classid 1:{minor:X} htb rate 100Mbps')
+                        self._tc_run(f'tc qdisc add dev {iface[0]} parent 1:{minor:X} handle {i*10:X}: {netem}')
 
-                    if protocol == "fw":
-                        self._tc_run(fp + "{} {} classid 1:{:X}".format(selector, protocol, minor))
+                    if protocol == 'fw':
+                        self._tc_run(f'{fp} {selector} {protocol} classid 1:{minor:X}')
                     else:
-                        self._tc_run(fp + 'protocol {} prio {} {} flowid 1:{:X}'.format(protocol, i, selector, minor))
+                        self._tc_run(f'{fp} protocol {protocol} prio {i} {selector} flowid 1:{minor:X}')
+
         return profiles_used
 
     def error(self, request, reason):
@@ -707,17 +739,19 @@ class ClientHandle(net.Network):
                 info.inb_count = 0
                 info.out_count = 0
             i += 1
+
         if len(counts) == 0:
-            # All filters had zero counts, this must be "heart beat" call, add a dummy counts element
+            # All filters had zero counts, this must be 'heart beat' call, add a dummy counts element
             counts.append((0, 0, 0, time.time()))
+
         self.send({'id': 'filter',
                    'fid': self.filter_id,
                    'cnt': counts})
 
     def check_send(self, msg):
-        ret = self._socket.send(bytes(msg, "utf-8"))
+        ret = self._socket.send(bytes(msg, 'utf-8'))
         if ret != len(msg):
-            logger.info("Check send failed: %d != %d for '%s'", ret, len(msg), msg)
+            logger.info('Check send failed: %d != %d for "%s"', ret, len(msg), msg)
 
     def rcve_async(self, do_read=True):
         while True:
@@ -743,64 +777,69 @@ class ClientHandle(net.Network):
                     # EOF state -- any attempt to use rcve after this will
                     # raise EOFError. NOTE: the last line is without line
                     # end, but this is hidden from the user of this api...
+
                 else:
                     # Check if the new chunk has the line end
-                    chunk, sep, after = chunk.decode("utf-8").partition('\r\n')
+                    chunk, sep, after = chunk.decode('utf-8').partition('\r\n')
                     line = line + chunk
                     if sep == '':
                         # Still no line end, keep buffering
                         self.msg = line
                         return None
                     # Line end foud
+
             self.msg = after
             if line == '':
                 # End Of Headers
-                logger.info("Handshaking...")
+                logger.info('Handshaking...')
                 key = self.header.get('sec-websocket-key')
                 if key is None:
-                    raise socket.error("Missing Sec-WebSocket-Key header")
+                    raise socket.error('Missing Sec-WebSocket-Key header')
                 ver = self.header.get('sec-websocket-version')
                 if ver != '13':
-                    raise socket.error("Unsupported WebSocket version {}".format(ver))
+                    raise socket.error(f'Unsupported WebSocket version {ver}')
                 if self.header.get('upgrade').lower() != 'websocket':
-                    raise socket.error("Request is not websocket upgrade")
+                    raise socket.error('Request is not websocket upgrade')
                 hash = hashlib.sha1()
                 # hash.update(key)
-                hash.update(bytes(key, "utf-8"))
-                hash.update(bytes('258EAFA5-E914-47DA-95CA-C5AB0DC85B11', "utf-8"))
-                hash_base64 = b64encode(hash.digest()).decode("utf-8")
+                hash.update(bytes(key, 'utf-8'))
+                hash.update(bytes('258EAFA5-E914-47DA-95CA-C5AB0DC85B11', 'utf-8'))
+                hash_base64 = b64encode(hash.digest()).decode('utf-8')
                 self.check_send('HTTP/1.1 101 Switching Protocols\r\n')
                 self.check_send('Upgrade: websocket\r\n')
                 self.check_send('Connection: Upgrade\r\n')
-                # self.check_send('Sec-WebSocket-Accept: ' + b64encode(hash.digest()) + '\r\n')
-                self.check_send('Sec-WebSocket-Accept: ' + hash_base64 + '\r\n')
+                self.check_send(f'Sec-WebSocket-Accept: {hash_base64}\r\n')
                 self.check_send('\r\n')
                 self.websocket = True
-                logger.info("Handshaking complete...")
+                logger.info('Handshaking complete...')
+
             elif self.linenr == 0:
                 # This line should be the GET request
                 parts = line.strip().split()
                 if len(parts) < 3 or parts[0] != 'GET':
-                    raise socket.error("Invalid request line: '{}'".format(line))
+                    raise socket.error(f"Invalid request line: '{line}'")
                 self.path = parts[1]
+
             elif line.startswith(' ') or line.startswith('/t'):
-                logger.info("Got continuation")
+                logger.info('Got continuation')
                 # This is a continuation line for previous field
                 if self.field is None:
-                    raise socket.error("Invalid header continuation line: '{}'".format(line))
-                self.header[self.field] += ' ' + line.strip()
+                    raise socket.error(f"Invalid header continuation line: '{line}'")
+                self.header[self.field] += f' {line.strip()}'
+
             else:
                 # This must be a new field
                 line = line.strip()
                 self.field, sep, value = line.partition(':')
                 if sep != ':':
-                    raise socket.error("Invalid header line: '{}'".format(line))
+                    raise socket.error(f'Invalid header line: "{line}"')
                 self.field = self.field.strip().lower()
                 value = value.strip()
                 if self.field in self.header:
-                    self.header[self.field] += ',' + value
+                    self.header[self.field] += f',{value}'
                 else:
                     self.header[self.field] = value
+
             self.linenr += 1
             logger.debug(line)
 
@@ -856,7 +895,7 @@ def send_to_all(clients, msg, butone=None):
 
 
 def exporter():
-    exporter_logger.info("PID=%d", os.getpid())
+    exporter_logger.info('PID=%d', os.getpid())
     wss = ServerHandle()
     wss.createServerSocket(('', 8888))
 
@@ -877,7 +916,7 @@ def exporter():
 
     while busy:
         if (cycles & 0xffff) == 0:
-            exporter_logger.info("Cycles=%d", cycles)
+            exporter_logger.info('Cycles=%d', cycles)
         cycles += 1
 
         (sread, swrite, sexc) = select.select(WATCHED, [], WATCHED, timeout)
@@ -892,10 +931,12 @@ def exporter():
                 if (timeout > -passed):
                     timeout = -passed
                 continue
+
             if c in update_counts:
                 update_counts.remove(c)
                 if timeout > c.heart_beat:
                     timeout = c.heart_beat
+
             elif passed < c.heart_beat:
                 if c.heart_beat - passed < timeout:
                     timeout = c.heart_beat - passed
@@ -910,7 +951,7 @@ def exporter():
                 c.flush_counts()
             except Exception as e:
                 # NOTE: this branch is most likely untested...
-                exporter_logger.info("Closing client: %s error: %s", c.id, e)
+                exporter_logger.info('Closing client: %s error: %s', c.id, e)
                 if c is running:
                     c.unrun(INTERFACES)
                     c.close()
@@ -927,7 +968,7 @@ def exporter():
                     'profiles': used
                 }
                 running.send(reply)
-                reply['client'] = running.user + ':' + str(running.id)
+                reply['client'] = f'{running.user}:{running.id}'
                 send_to_all(CLIENTS, reply, butone=running)
 
         for rdy in sread:
@@ -943,7 +984,7 @@ def exporter():
                         msg = rdy.rcve_async(do_read)
                         if msg is None:
                             break
-                        # exporter_logger.info("Got from rcve_async: %s", msg)
+                        # exporter_logger.info('Got from rcve_async: %s', msg)
                         try:
                             id = msg.get('id')
                             if 'user' in msg:
@@ -952,25 +993,28 @@ def exporter():
                             if id == GETPACKING:
                                 rdy.send({'id': GETPACKING, 'result': KEYPACK})
                                 # This is ugly hack, was working better in python2
-                                # Without this, json.dumps will error "Circular reference detected"
+                                # Without this, json.dumps will error 'Circular reference detected'
                                 j = []
                                 for i in INTERFACES.values():
                                     j.append(list(i))
                                 rdy.send({'id': NEWINTERFACE, 'result': j})
                                 rdy.send({'id': PROFILETEMPLATE, 'result': PROFILE_TEMPLATE})
                                 rdy.notify = True
+
                             elif id == SETFILTERS:
                                 rdy.filter_id = msg.get('fid')
                                 rdy.filters = [[bytes_to_int(b64decode(x[0])),
                                                 bytes_to_int(b64decode(x[1])),
                                                 Info(x[2], x[3], x[4])] for x in msg.get('filters')]
+
                             elif id == SETCONTROL:
                                 # Min counters reporting frequency in seconds
                                 rdy.throttle_delay = msg.get('frequency', rdy.throttle_delay)
                                 rdy.heart_beat = msg.get('heartbeat', rdy.heart_beat)
+
                             elif id == RUNAPPLICATION:
                                 # msg = {
-                                #   id: "RunApplication",
+                                #   id: 'RunApplication',
                                 #   user: <user_name>
                                 #   fid: <filter id>
                                 #   profiles: [ [<ingress profile>, <egress profile>], ...]
@@ -1015,13 +1059,16 @@ def exporter():
                                 # client==0 indicates own application for the client
                                 rdy.send(reply)
                                 # Inform all other clients
-                                reply['client'] = rdy.user + ':' + str(rdy.id)
+                                reply['client'] = f'{rdy.user}:{rdy.id}'
                                 send_to_all(CLIENTS, reply, butone=rdy)
+
                             else:
-                                rdy.error(msg, "Not implemented")
+                                rdy.error(msg, 'Not implemented')
+
                         except ServiceError as e:
                             rdy.error(msg, str(e))
                         do_read = False
+
                 except Exception as e:
                     exporter_logger.info('Closing client: %s ***', e)
                     exporter_logger.info('-'*60)
@@ -1035,13 +1082,15 @@ def exporter():
                     rdy.close()
                     CLIENTS.remove(rdy)
                     WATCHED.remove(rdy)
+
     for c in CLIENTS:
-        exporter_logger.info("Closing client: %s", c.id)
+        exporter_logger.info('Closing client: %s', c.id)
         if c is running:
             c.unrun(INTERFACES)
         c.close()
+
     wss.close()
-    exporter_logger.info("Exporter exit")
+    exporter_logger.info('Exporter exit')
 
 
 def main():
