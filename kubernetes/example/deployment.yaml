@@ -4,7 +4,7 @@ kind: Deployment
 metadata:
   name: example
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       component: example
@@ -12,12 +12,17 @@ spec:
     metadata:
       labels:
         component: example
-        traffic-profile: delay-jitter-to-quad-one
+        #traffic-profile: delay-jitter-to-quad-one
+        traffic-profile: profile-delay-jitter-flexe
     spec:
       containers:
       - name: ping-cloudflare
         image: nicolaka/netshoot
         command: [ ping, '1.1.1.1' ]
+        resources:
+          limits:
+            memory: 200Mi
+            cpu: 500m
         securityContext:
           capabilities:
             add:
@@ -26,7 +31,11 @@ spec:
       - name: ping-google
         image: nicolaka/netshoot
         command: [ ping, '8.8.8.8' ]
+        resources:
+          limits:
+            memory: 200Mi
+            cpu: 500m
         securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
+          capabilities:
+            add:
+            - NET_ADMIN

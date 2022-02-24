@@ -1,0 +1,11 @@
+[
+    {
+        "fwmark": 34,
+        "profile": "ethernet"
+    },
+    {
+        "fwmark": 32,
+        "interface": "lo",
+        "profile": "3g"
+    }
+]

@@ -8,6 +8,7 @@ EXECUTABLE = 'tc-script'
 
 
 class ScriptController(Controller):
+    type = 'Script'
 
     def __init__(self, intf: str, options: Dict = {}):
         super().__init__(intf)
@@ -15,17 +16,11 @@ class ScriptController(Controller):
         self.config_file = tempfile.NamedTemporaryFile('w+')
         self.options = options
 
-        self.type = 'Script'
-        self.proc = None
+        self.proc = subprocess.Popen([EXECUTABLE, self.config_file.name])
 
     def __del__(self):
         self.config_file.close()
         self.deinit()
-
-    def init(self):
-        self.update()
-
-        self.proc = subprocess.Popen([EXECUTABLE, self.config_file.name])
 
     def update(self):
         self.config_file.seek(0)

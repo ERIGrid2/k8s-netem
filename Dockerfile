@@ -1,11 +1,12 @@
-# FROM vtt/netem
 FROM python:3.9-bullseye
 
 RUN apt-get update && \
     apt-get -y install \
         nftables \
         python3-nftables \
-        iproute2
+        iproute2 \
+        supervisor \
+        python3-websocket
 
 # Add python3-nftables to system path
 ENV PYTHONPATH=/usr/lib/python3/dist-packages/
@@ -13,9 +14,13 @@ ENV PYTHONPATH=/usr/lib/python3/dist-packages/
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
+COPY etc/supervisord.conf /etc/
+
 RUN mkdir /src
 WORKDIR /src
 COPY . /src
+COPY src/flexe/profiles /src/profiles/
+
 RUN pip install -e .
 
-CMD ["k8s-netem-sidecar"]
+CMD ["supervisord", "-c", "/etc/supervisord.conf"]

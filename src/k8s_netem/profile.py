@@ -20,6 +20,9 @@ class Profile(Resource):
 
         super().__init__(spec)
 
+        self.band = -1  # will be set by BuiltinController.add_profile()
+        self.mark = -1  # will be set in init()
+
         self.ressource = res
 
         self.meta = res.get('metadata', {})
@@ -47,7 +50,7 @@ class Profile(Resource):
         if 'egress' in self.spec:
             self.egress = Direction(self, self.spec['egress'], 'egress')
 
-        # Remove some unneded info
+        # Remove some unneeded information to cleanup logs
         try:
             del self.meta['managedFields']
             del self.meta['annotations']['kubectl.kubernetes.io/last-applied-configuration']

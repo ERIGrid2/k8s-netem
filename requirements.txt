@@ -3,3 +3,7 @@ flask
 jsonpatch
 inotify
 jsonschema
+tornado
+requests
+passlib
+netaddr
