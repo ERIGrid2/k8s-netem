@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Set, TYPE_CHECKING
+from typing import Dict, Set, Any, TYPE_CHECKING
 
 import logging
 import ipaddress
@@ -27,11 +27,15 @@ class Rule(Resource):
         self.name = f'{self.direction.direction}-{self.index}-{self.generation}'
         self.set_ports_name = f'{self.name}-ports'
         self.set_nets_name = f'{self.name}-nets'
+        self.set_ether_types_name = f'{self.name}-ether-types'
+        self.set_inet_protos_name = f'{self.name}-inet-protos'
 
         peer_specs = spec.get('from' if self.direction.direction == 'ingress' else 'to', [])
 
         self.peers = [Peer(self, i, p) for i, p in enumerate(peer_specs)]
         self.ports = self.spec.get('ports', [])
+        self.ether_types = self.spec.get('etherTypes', [])
+        self.inet_protos = self.spec.get('inetProtos', [])
 
         self.nets: Set[ipaddress.IPv4Network] = set()
 
@@ -72,8 +76,42 @@ class Rule(Resource):
                 'type': ['inet_proto', 'inet_service']
               }
             }
+          },
+          {
+            'add': {
+              'set': {
+                **self.direction.profile.table,
+                'name': self.set_ether_types_name,
+                'type': 'ether_type'
+              }
+            }
+          },
+          {
+            'add': {
+              'set': {
+                **self.direction.profile.table,
+                'name': self.set_inet_protos_name,
+                'type': 'inet_proto'
+              }
+            }
           }
         ]
+
+    def cmd_populate_set_ether_types(self):
+        cmds = []
+
+        for ether_type in self.ether_types:
+            cmds += self.cmd_modify_set_ether_type('add', ether_type)
+
+        return cmds
+
+    def cmd_populate_set_inet_protos(self):
+        cmds = []
+
+        for inet_protos in self.inet_protos:
+            cmds += self.cmd_modify_set_inet_proto('add', inet_protos)
+
+        return cmds
 
     def cmd_populate_set_nets(self):
         cmds = []
@@ -88,6 +126,12 @@ class Rule(Resource):
                 self.nets.add(cidr)
 
                 cmds += self.cmd_modify_set_net('add', cidr)
+
+        for proto in self.inet_protos:
+            cmds += self.cmd_modify_set_port
+
+        for type in self.ether_types:
+            pass
 
         return cmds
 
@@ -104,6 +148,36 @@ class Rule(Resource):
 
     def cmd_create_rule(self):
         exprs = []
+
+        if len(self.ether_types) > 0:
+            exprs += [
+              {
+                'match': {
+                  'left': {
+                    'meta': {
+                        'key': 'protocol'
+                    }
+                  },
+                  'right': f'@{self.set_ether_types_name}',
+                  'op': '=='
+                }
+              }
+            ]
+
+        if len(self.inet_protos) > 0:
+            exprs += [
+              {
+                'match': {
+                  'left': {
+                    'meta': {
+                        'key': 'l4proto'
+                    }
+                  },
+                  'right': f'@{self.set_inet_protos_name}',
+                  'op': '=='
+                }
+              }
+            ]
 
         # If at least one peer is provided in the spec,
         # we will match against the associated networks
@@ -182,6 +256,22 @@ class Rule(Resource):
             'delete': {
               'set': {
                 **self.direction.profile.table,
+                'name': self.set_ether_types_name
+              }
+            }
+          },
+          {
+            'delete': {
+              'set': {
+                **self.direction.profile.table,
+                'name': self.set_inet_protos_name
+              }
+            }
+          },
+          {
+            'delete': {
+              'set': {
+                **self.direction.profile.table,
                 'name': self.set_nets_name
               }
             }
@@ -217,7 +307,61 @@ class Rule(Resource):
         return self.rule.cmd_delete_rule() + \
                self.rule.cmd_create_rule()
 
-    def cmd_modify_set_port(self, op: str, protocol: str, port_no: int, comment: str = None):
+    def cmd_modify_set_ether_type(self, op: str, ether_type: str | int, comment: str = None):
+        elem = {
+          'val': ether_type
+        }
+
+        if comment is not None:
+            elem['comment'] = comment
+
+        return [
+          {
+            op: {
+              'element': {
+                **self.direction.profile.table,
+                'name': self.set_ether_types_name,
+                'elem': [
+                  elem
+                ]
+              }
+            }
+          }
+        ]
+
+    def cmd_modify_set_inet_proto(self, op: str, protocol: str | int, comment: str = None):
+        elem = {
+          'val': protocol
+        }
+
+        if comment is not None:
+            elem['comment'] = comment
+
+        return [
+          {
+            op: {
+              'element': {
+                **self.direction.profile.table,
+                'name': self.set_inet_protos_name,
+                'elem': [
+                  elem
+                ]
+              }
+            }
+          }
+        ]
+
+    def cmd_modify_set_port(self, op: str, protocol: str, port: str | int, comment: str = None):
+        elem: Dict[str, Any] = {
+          'concat': [
+            protocol,
+            int(port)
+          ]
+        }
+
+        if comment is not None:
+            elem['comment'] = comment
+
         return [
           {
             op: {
@@ -225,12 +369,7 @@ class Rule(Resource):
                 **self.direction.profile.table,
                 'name': self.set_ports_name,
                 'elem': [
-                  {
-                    'concat': [
-                      protocol,
-                      int(port_no)
-                    ]
-                  }
+                  elem
                 ]
               }
             }
@@ -238,7 +377,7 @@ class Rule(Resource):
         ]
 
     def cmd_modify_set_net(self, op: str, cidr: ipaddress.IPv4Network, comment: str = None):
-        if cidr.prefixlen >= ipaddress.IPV4LENGTH:
+        if cidr.prefixlen >= ipaddress.IPV4LENGTH:  # IPv6
             val = str(cidr.network_address)
         else:
             val = {
@@ -275,6 +414,8 @@ class Rule(Resource):
         cmds = []
 
         cmds += self.cmd_create_sets()
+        cmds += self.cmd_populate_set_ether_types()
+        cmds += self.cmd_populate_set_inet_protos()
         cmds += self.cmd_populate_set_nets()
         cmds += self.cmd_populate_set_ports()
         cmds += self.cmd_create_rule()

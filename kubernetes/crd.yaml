@@ -88,7 +88,7 @@ spec:
               parameters:
                 type: object
 
-                # For type == 'Script'
+                # For type == 'Builtin'
                 x-kubernetes-preserve-unknown-fields: true
 
                 properties:
@@ -198,32 +198,53 @@ spec:
                         default: 0
 
               egress:
+                type: array
                 items:
+                  type: object
                   properties:
-                    ports:
+                    etherTypes:
+                      type: array
                       items:
+                        oneOf:
+                        - type: integer
+                        - type: string
+
+                    inetProtos:
+                      type: array
+                      items:
+                        oneOf:
+                        - type: integer
+                        - type: string
+
+                    ports:
+                      type: array
+                      items:
+                        type: object
                         description: NetworkPolicyPort describes a port to allow traffic on
                         properties:
                           port:
                             type: integer
                           protocol:
                             type: string
-                        type: object
-                      type: array
+
                     to:
+                      type: array
                       items:
+                        type: object
                         properties:
                           ipBlock:
+                            type: object
                             properties:
                               cidr:
                                 type: string
                             required:
                             - cidr
-                            type: object
                           podSelector:
                             properties:
                               matchExpressions:
+                                type: array
                                 items:
+                                  type: object
                                   properties:
                                     key:
                                       type: string
@@ -232,30 +253,43 @@ spec:
                                     operator:
                                       type: string
                                     values:
+                                      type: array
                                       items:
                                         type: string
-                                      type: array
                                   required:
                                   - key
                                   - operator
-                                  type: object
-                                type: array
                               matchLabels:
+                                type: object
                                 additionalProperties:
                                   type: string
-                                type: object
                             type: object
-                        type: object
-                      type: array
-                  type: object
-                type: array
 
               ingress:
+                type: array
                 items:
+                  type: object
                   properties:
-                    from:
+                    etherTypes:
+                      type: array
                       items:
+                        oneOf:
+                        - type: integer
+                        - type: string
+
+                    inetProtos:
+                      type: array
+                      items:
+                        oneOf:
+                        - type: integer
+                        - type: string
+
+                    from:
+                      type: array
+                      items:
+                        type: object
                         properties:
+                          type: object
                           ipBlock:
                             properties:
                               cidr:
@@ -266,10 +300,11 @@ spec:
                                 type: array
                             required:
                             - cidr
-                            type: object
                           podSelector:
+                            type: object
                             properties:
                               matchExpressions:
+                                type: array
                                 items:
                                   properties:
                                     key:
@@ -279,29 +314,24 @@ spec:
                                     operator:
                                       type: string
                                     values:
+                                      type: array
                                       items:
                                         type: string
-                                      type: array
                                   required:
                                     - key
                                     - operator
                                   type: object
-                                type: array
                               matchLabels:
                                 additionalProperties:
                                   type: string
                                 type: object
-                            type: object
-                        type: object
-                      type: array
+
                     ports:
+                      type: array
                       items:
+                        type: object
                         properties:
                           port:
                             type: integer
                           protocol:
                             type: string
-                        type: object
-                      type: array
-                  type: object
-                type: array

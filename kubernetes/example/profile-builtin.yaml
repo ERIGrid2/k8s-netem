@@ -15,12 +15,36 @@ spec:
       loss_ratio: 1 # in [0, 1]
 
   egress:
+
+
+  # Run 'nft describe ether_type' for a list of pre-defined symbolic constants
+  # https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
+  - etherTypes:
+    - arp
+    - ip
+    - ip6
+
+    - 0x88B8 # GOOSE
+
+  # Run 'nft describe inet_proto' for a list of pre-defined symbolic constants
+  # https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+  - inetProto:
+    - ipv4
+    - icmp
+
+    - ipv46
+    - ipv6-icmp
+
+    - 0x1 # ICMP
+
   - to:
     - ipBlock:
         cidr: 1.1.1.1/32
     - podSelector:
         matchLabels:
           component: example
+
+  # https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml
   - ports:
     - port: 443
       protocol: TCP
