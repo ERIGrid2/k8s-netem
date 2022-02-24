@@ -1,4 +1,4 @@
-''' Flexe controller
+'''Flexe controller
 
 Copyright 2022, VTT Technical Research Centre of Finland Ltd.
 
@@ -14,7 +14,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 @author Kimmo Ahola <Kimmo.Ahola(at)vtt.fi>
-
 '''
 
 import websocket
@@ -44,9 +43,7 @@ class FlexeController(Controller):
     type = 'Flexe'
 
     def __init__(self, intf: str):
-        '''
-            Initialise the variables and parse the command line parameters.
-        '''
+        '''Initialise the variables and parse the command line parameters.'''
 
         super().__init__(intf)
 
@@ -91,31 +88,23 @@ class FlexeController(Controller):
         # self.get_profiles()
 
     def on_message(self, message):
-        '''
-            Handling the message received from WebSocket
-        '''
+        '''Handling the message received from WebSocket'''
 
         self.logger.debug('Websocket message received: %s', message)
         self.parse_received_message(message)
 
     def on_error(self, error):
-        '''
-            Handling the WebSocket error message
-        '''
+        '''Handling the WebSocket error message'''
 
         self.logger.error('Websocket received error: %s', error)
 
     def on_close(self, close_status_code, close_msg):
-        '''
-            Handling when WebSocket connection is closed
-        '''
+        '''Handling when WebSocket connection is closed'''
 
         self.logger.debug('Websocket closed')
 
     def on_open(self):
-        '''
-            Handling when WebSocket connection is opened
-        '''
+        '''Handling when WebSocket connection is opened'''
 
         self.logger.debug('Websocket connection open succeed')
         self.opened = 1
@@ -137,9 +126,7 @@ class FlexeController(Controller):
                 continue
 
     def ws_thread(self):
-        '''
-            Thread handling the WebSocket communication
-        '''
+        '''Thread handling the WebSocket communication'''
 
         websocket.enableTrace(False)
 
@@ -320,10 +307,9 @@ class FlexeController(Controller):
         self.queue.put({'name': 'send', 'data': message})
 
     def parse_received_message(self, message):
-        '''
-            Parses the received message from Flexe Emulator
+        '''Parses the received message from Flexe Emulator
 
-            Mainly check the id of the message and act accordingly
+        Mainly check the id of the message and act accordingly
         '''
 
         data_received = json.loads(message)
@@ -365,9 +351,7 @@ class FlexeController(Controller):
             self.logger.info('Received something else: %s', data_received)
 
     def handle_packing_message(self, msg: Dict):
-        '''
-            Handle the received GetPacking message from Flexe Emulator
-        '''
+        '''Handle the received GetPacking message from Flexe Emulator'''
         i = 0
         index = 0
         for pack in msg:
@@ -384,9 +368,7 @@ class FlexeController(Controller):
         self.logger.debug('Self.flowcol: %s', self.flowcol)
 
     def get_profiles(self):
-        '''
-            Fetch the profiles from Flexe Emulator REST API
-        '''
+        '''Fetch the profiles from Flexe Emulator REST API'''
 
         self.logger.info('Fetch all the known profiles from Flexe...')
 
@@ -413,9 +395,7 @@ class FlexeController(Controller):
         self.logger.debug('Now all profiles have fetched and data in: %s', self.flexe_profiles)
 
     def save_profile(self, profile_data: Dict, name: AnyStr):
-        '''
-            Save profile using Flexe Emulator REST API
-        '''
+        '''Save profile using Flexe Emulator REST API'''
 
         headers = {
             'Content-Type': 'application/json'

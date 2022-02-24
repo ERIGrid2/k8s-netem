@@ -15,7 +15,6 @@ THE SOFTWARE.
 
 @author: Markku Savela <Markku.Savela(at)vtt.fi>
 @author: Kimmo Ahola <Kimmo.Ahola(at)vtt.fi>
-
 '''
 
 import os
@@ -50,8 +49,8 @@ FILESETS = ('profiles', 'applications')
 
 
 def authenticate(f):
-    '''Require HTTP Basic Authentication from the GET/POST/...
-    '''
+    '''Require HTTP Basic Authentication from the GET/POST/...'''
+
     def wrap(self, *args, **kwargs):
         # Require that request has the correct authentication header
         # and pick up the user/password

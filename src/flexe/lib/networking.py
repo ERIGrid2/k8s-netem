@@ -16,8 +16,8 @@ THE SOFTWARE.
 @author: Matias Elo <matias.elo@vtt.fi>
 @author: Markku Savela <markku.savela@vtt.fi>
 @author: Kimmo Ahola <kimmo.ahola@vtt.fi>
-
 '''
+
 import os
 import fcntl
 import socket

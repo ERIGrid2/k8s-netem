@@ -17,8 +17,8 @@ THE SOFTWARE.
 
 The only purpose is to have single global copy of the configuration
 in memory for all modules that need it.
-
 '''
+
 import os
 import json
 

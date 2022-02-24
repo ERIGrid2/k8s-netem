@@ -15,7 +15,6 @@ THE SOFTWARE.
 
 @author: Markku Savela <Markku.Savela(at)vtt.fi>
 @author: Kimmo Ahola <Kimmo.Ahola(at)vtt.fi>
-
 '''
 
 import socket
@@ -168,20 +167,17 @@ CLIENTS: set = set()
 
 
 def bytes_to_int(s):
-    '''Convert key byte array to a long integer
-    '''
+    '''Convert key byte array to a long integer'''
     return int(hexlify(s), 16)
 
 
 def int_to_bytes(key):
-    '''Convert integer key into bytes array
-    '''
+    '''Convert integer key into bytes array'''
     return unhexlify(KEY_FMT % key)
 
 
 def filter_key_mask(source, target):
-    '''Generate filter key and mask for source/target socket addresses
-    '''
+    '''Generate filter key and mask for source/target socket addresses'''
     key = ''
     mask = ''
     for field in KEYPACK:
@@ -266,7 +262,6 @@ class ClientHandle(net.Network):
         Args:
             command: Sub-process command.
             timeout: Value in seconds.
-
         '''
         def kill_proc(p):
             p.kill()

@@ -14,7 +14,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 @author: Markku Savela <Markku.Savela(at)vtt.fi>
-
 '''
 
 from passlib.apps import custom_app_context as pwd_context
