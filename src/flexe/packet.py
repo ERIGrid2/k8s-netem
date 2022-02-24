@@ -431,13 +431,16 @@ class ClientHandle(net.Network):
         head = {}
         self.run_profiles[profile] = head
         terminate = time.time()
+
         start = data['run']['start']
         end = data['run']['end']
         for index, curr in enumerate(data['segments'][0:end]):
             head.update(curr)
             if index < start:
                 continue
+
             head['index'] = index
+
             duration = head.get('runTime')
             if duration is not None and duration > 0:
                 # Convert duration (runTime) into absolute time stamp that
@@ -1089,11 +1092,8 @@ def exporter():
 
 
 def main():
+
     # Initialize supported netem delay distributions
     PROFILE_DELAY_DISTRIBUTION['option'] = ['', 'uniform'] + [os.path.splitext(os.path.basename(p))[0] for p in glob.glob('/usr/lib/tc/*.dist')]
 
     exporter()
-
-
-if __name__ == '__main__':
-    main()

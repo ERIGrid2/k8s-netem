@@ -76,16 +76,16 @@ class FlexeController(Controller):
         # The initial information from the Flexe Emulator Websocket interface
         # can be fetched with the code below. That will return the information
         # what kind of parameters Flexe Emulator accepts.
-        message = json.dumps({'id': 'GetPacking'})
+        message = json.dumps({
+            'id': 'GetPacking'
+        })
         self.ws.send(message)
+
         self.logger.info('Sent initial message to Flexe server')
 
         self.main_thread_id = threading.Thread(target=self.main_thread)
         self.main_thread_id.daemon = True
         self.main_thread_id.start()
-
-        # Fetch all already known profiles from Flexe Emulator REST API
-        # self.get_profiles()
 
     def on_message(self, message):
         '''Handling the message received from WebSocket'''
@@ -112,16 +112,11 @@ class FlexeController(Controller):
     def main_thread(self):
         while True:
             try:
-                item = self.queue.get(timeout=1)
+                msg = self.queue.get(timeout=1)
 
-                if item.get('name') == 'stop':
-                    self.logger.info('Stop command received -> stopping everything...')
-                    self.ws.close()
-                    # i.remove_watch(path)  # seems broken?
-                    exit(1)
-                elif item.get('name') == 'send':
-                    self.logger.debug('Now send to websocket: %s', item.get('data'))
-                    self.ws.send(item.get('data'))
+                self.logger.debug('Now send to websocket: %s', msg)
+                self.ws.send(json.dumps(msg))
+
             except queue.Empty:
                 continue
 
@@ -166,31 +161,30 @@ class FlexeController(Controller):
         self.update_flexe(profile, "update")
 
     def parse_segments(self, profiles: Dict, segments: List) -> Dict:
-        segment_dict = {}
+        segment_dict: Dict = {}
         segment_dict['segments'] = []
 
         # Try to find first how many segments we have
         end = len(profiles)
-        segment_dict['run'] = {'start': 0, 'end': end+1}
+        segment_dict['run'] = {
+            'start': 0,
+            'end': end+1
+        }
 
         for segment in segments:
-            if segment and "repeat" in segment:
-                repeat = segment.get("repeat")
-                segment_dict['run']['repeat'] = repeat
-            else:
-                segment_dict['run']['repeat'] = False
+            segment_dict['run']['repeat'] = segment.get('repeat', False)
 
         # Then find add the profile parameters to segment information
-        for prof in profiles:
-            segment_dict['segments'].append(profiles.get(prof))
+        for profile in profiles:
+            segment_dict['segments'].append(profiles.get(profile))
 
         return segment_dict
 
-    def handle_filter_creation(self, profile: Profile) -> Dict:
+    def create_filter_message(self, profile: Profile) -> Dict:
         filters = []
 
         # This assumes that fwmark is the only filtering parameter
-        # For this specific case (EriGrid2), this is the case.
+        # For this specific case (k8s-netem), this is the case.
         if 'fwmark' in self.flowcol:
             index = self.flowcol.get('fwmark')[1]
             size = self.flowcol.get('fwmark')[2]
@@ -233,7 +227,7 @@ class FlexeController(Controller):
 
         return msg
 
-    def handle_run_message_creation(self, profile: Profile) -> Dict:
+    def create_run_message(self, profile: Profile) -> Dict:
         profiles = []
         profile_infos = {}
         defined_profiles = {}
@@ -261,7 +255,10 @@ class FlexeController(Controller):
 
         profile_infos[profile_name] = {
             'segments': segment_info.get('segments', []),
-            'run': segment_info.get('run', {'start': 0, 'end': 1})
+            'run': segment_info.get('run', {
+                'start': 0,
+                'end': 1
+            })
         }
 
         msg = {
@@ -278,13 +275,14 @@ class FlexeController(Controller):
         send_filters = True
 
         # Handle the runApplication message creation
-        run_msg = self.handle_run_message_creation(profile)
+        run_msg = self.create_run_message(profile)
 
         # Check if the egress profile name is empty -> Flexe NetEm will clear the rules.
         # Also there is no need to send the filter message to Flexe NetEm
         profiles = run_msg.get('profiles', None)
         if mode == "delete" or profiles[0][1] == '' or profiles[0][1] is None:
             send_filters = False
+
             # Flexe NetEm removes all profiles, if dictionary does not include 'profiles' key
             del run_msg['profiles']
 
@@ -292,19 +290,18 @@ class FlexeController(Controller):
         if send_filters:
             filter_msg = {}
             while len(filter_msg) < 1:
-                filter_msg = self.handle_filter_creation(profile)
+                filter_msg = self.create_filter_message(profile)
                 # If length of filter_msg is zero, there is need to wait a little bit
                 # so WebSocket receives needed information from Flexe NetEm
                 if len(filter_msg) == 0:
                     time.sleep(1)
                 else:
-                    message = json.dumps(filter_msg)
-                    self.queue.put({'name': 'send', 'data': message})
+                    self.queue.put(filter_msg)
+
                     # filter id (fid) should be the same than in filter message
                     run_msg['fid'] = filter_msg.get('fid')
 
-        message = json.dumps(run_msg)
-        self.queue.put({'name': 'send', 'data': message})
+        self.queue.put(run_msg)
 
     def parse_received_message(self, message):
         '''Parses the received message from Flexe Emulator
@@ -367,33 +364,6 @@ class FlexeController(Controller):
 
         self.logger.debug('Self.flowcol: %s', self.flowcol)
 
-    def get_profiles(self):
-        '''Fetch the profiles from Flexe Emulator REST API'''
-
-        self.logger.info('Fetch all the known profiles from Flexe...')
-
-        r = requests.get(f'{FLEXE_API_URL}/profiles', auth=HTTPBasicAuth(FLEXE_USER, FLEXE_PASSWORD))
-        if r.status_code != 200:
-            self.logger.error('Get profiles failed with status code %d -> bailing out', r.status_code)
-            return
-        else:
-            if r.json() is not None:
-                profiles = r.json().get('result')
-                self.logger.info('Profiles: %s', profiles)
-            else:
-                profiles = []
-
-        # Now get more information from all profiles at the Flexe server
-        for profile in profiles:
-            r = requests.get(f'{FLEXE_API_URL}/profiles/{profile}', auth=HTTPBasicAuth(FLEXE_USER, FLEXE_PASSWORD))
-            if r.status_code != 200:
-                self.logger.debug('Getting more information about the profile failed with status code %d -> bailing out', r.status_code)
-                return
-            else:
-                self.flexe_profiles.append({profile: r.json()})
-
-        self.logger.debug('Now all profiles have fetched and data in: %s', self.flexe_profiles)
-
     def save_profile(self, profile_data: Dict, name: AnyStr):
         '''Save profile using Flexe Emulator REST API'''
 
@@ -406,7 +376,11 @@ class FlexeController(Controller):
                           headers=headers)
 
         # Expected reply
-        # {'id': 'profiles', 'user': 'userX', 'message': 'Saved name'})
+        # {
+        #   'id': 'profiles',
+        #   'user': 'userX',
+        #   'message': 'Saved name'
+        # }
         if r.status_code != 200:
             self.logger.error('Save profiles failed with status code %d -> bailing out', r.status_code)
         else:
