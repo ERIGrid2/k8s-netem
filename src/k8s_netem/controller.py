@@ -21,6 +21,9 @@ class Controller(Caller):
 
         self.profiles: Dict[str, Profile] = {}
 
+    def deinit(self):
+        pass
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.types[cls.type] = cls

@@ -147,7 +147,20 @@ class Rule(Resource):
         return cmds
 
     def cmd_create_rule(self):
-        exprs = []
+        exprs = [
+            # Match only the interface of the profile to which this rule belongs
+            {
+                'match': {
+                    'left': {
+                        'meta': {
+                            'key': 'iif' if self.direction.direction == 'ingress' else 'oif'
+                        }
+                    },
+                    'right': self.direction.profile.interface_index,
+                    'op': '=='
+                }
+            }
+        ]
 
         if len(self.ether_types) > 0:
             exprs += [

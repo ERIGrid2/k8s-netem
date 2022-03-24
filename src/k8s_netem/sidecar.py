@@ -39,14 +39,6 @@ def init_signals(netem):
         signal.signal(sig, signal_action)
 
 
-def get_interface():
-    """ Find suitable interface """
-
-    intfs = os.listdir('/sys/class/net')
-
-    return [intf for intf in intfs if intf != 'lo'][0]
-
-
 def load_incluster_config_with_token(token: str):
     token_filename = '/tmp/token'
     with open(token_filename, 'w') as token_file:
@@ -78,9 +70,8 @@ def main():
                                  field_selector=f'metadata.name={POD_NAME}')
     my_pod = ret.items[0]
 
-    intf = get_interface()
-
-    ctrls: Dict[str, Controller] = {}
+    # InterfaceName -> Controller
+    interfaces: Dict[str, Controller] = {}
 
     init_nftables()
 
@@ -89,17 +80,25 @@ def main():
         if not profile.match(my_pod):
             continue
 
-        if profile.type in ctrls:
+        if profile.interface is None:
+            LOGGER.error('Failed to identify network interface')
+            continue
+
+        if profile.interface in interfaces:
+            ctrl = interfaces[profile.interface]
+            if ctrl.type != profile.type:
+                LOGGER.error('Conflicing controllers')
+                continue
+
             LOGGER.info('Using existing %s controller for profile %s', profile.type, profile)
         else:
             try:
                 LOGGER.info('Creating new %s controller for profile %s', profile.type, profile)
-                ctrls[profile.type] = Controller.from_type(profile.type, intf)
+                ctrl = Controller.from_type(profile.type, profile.interface)
+                interfaces[profile.interface] = ctrl
             except RuntimeError as e:
                 LOGGER.error('Failed to get controller for profile %s: %s. Ignoring...', profile, e)
                 continue
-
-        ctrl = ctrls[profile.type]
 
         # Get a unused fwmark
         mark = Controller.get_mark()
@@ -110,8 +109,11 @@ def main():
         # Pass new profile to controller
         ctrl.add_profile(profile)
 
+    # Show current nftables rulset
+    nft([{'list': {'ruleset': None}}])
+
     # Keep watching for added/removed/modified profiles
-    watch(ctrls, my_pod, intf)
+    watch(interfaces, my_pod)
 
     ctrl.deinit()
 
@@ -120,7 +122,7 @@ def init_nftables():
     nft([{'flush': {'ruleset': None}}])
 
 
-def watch(ctrls: Dict[str, Controller], my_pod, intf):
+def watch(interfaces: Dict[str, Controller], my_pod):
     for event in Profile.watch():
         profile = event['profile']
         type = event['type']
@@ -132,17 +134,21 @@ def watch(ctrls: Dict[str, Controller], my_pod, intf):
                      obj['metadata']['name'])
         LOGGER.debug('%s', json.dumps(profile, indent=2, cls=CustomEncoder))
 
-        if profile.type in ctrls:
+        if profile.interface is None:
+            LOGGER.error('Failed to identify network interface')
+            continue
+
+        if profile.interface in interfaces:
+            ctrl = interfaces[profile.interface]
             LOGGER.info('Using existing %s controller for profile %s', profile.type, profile)
         else:
             try:
                 LOGGER.info('Creating new %s controller for profile %s', profile.type, profile)
-                ctrls[profile.type] = Controller.from_type(profile.type, intf)
+                ctrl = Controller.from_type(profile.type, profile.interface)
+                interfaces[profile.interface] = ctrl
             except RuntimeError as e:
                 LOGGER.error('Failed to get controller for profile %s: %s. Ignoring...', profile, e)
                 continue
-
-        ctrl = ctrls[profile.type]
 
         old_profile = ctrl.profiles.get(profile.uid)
 
@@ -165,4 +171,13 @@ def watch(ctrls: Dict[str, Controller], my_pod, intf):
 
                 ctrl.remove_profile(old_profile)
 
+                # Deinitialize and remove controller once the last
+                # Profile has been removed. This allows new Profiles
+                # with a different type to target this interface.
+                if len(ctrl.profiles) == 0:
+                    LOGGER.info("Removing controller %s from interface %s", ctrl, profile.interface)
+                    ctrl.deinit()
+                    del interfaces[profile.interface]
+
+        # Show current nftables rulset
         nft([{'list': {'ruleset': None}}])

@@ -30,6 +30,12 @@ spec:
             - podSelector
             - parameters
             properties:
+              interfaceFilter:
+                type: string
+                description: >-
+                  A regular expression matching the container network interface which should
+                  should be used.
+
               podSelector:
                 type: object
                 description: >-
@@ -205,16 +211,12 @@ spec:
                     etherTypes:
                       type: array
                       items:
-                        oneOf:
-                        - type: integer
-                        - type: string
+                        x-kubernetes-int-or-string: true
 
                     inetProtos:
                       type: array
                       items:
-                        oneOf:
-                        - type: integer
-                        - type: string
+                        x-kubernetes-int-or-string: true
 
                     ports:
                       type: array
@@ -273,24 +275,20 @@ spec:
                     etherTypes:
                       type: array
                       items:
-                        oneOf:
-                        - type: integer
-                        - type: string
+                        x-kubernetes-int-or-string: true
 
                     inetProtos:
                       type: array
                       items:
-                        oneOf:
-                        - type: integer
-                        - type: string
+                        x-kubernetes-int-or-string: true
 
                     from:
                       type: array
                       items:
                         type: object
                         properties:
-                          type: object
                           ipBlock:
+                            type: object
                             properties:
                               cidr:
                                 type: string

@@ -9,6 +9,7 @@ from k8s_netem.match import LabelSelector
 from k8s_netem.direction import Direction
 from k8s_netem.config import NFT_TABLE_PREFIX
 from k8s_netem.nftables import nft
+from k8s_netem.interface import get_default_route_interface, get_interfaces, get_interface_index
 
 DIRECTIONS = ['ingress', 'egress']
 
@@ -30,6 +31,7 @@ class Profile(Resource):
         self.name: str = self.meta.get('name')
         self.uid: str = self.meta.get('uid')
 
+        self.interface_filter = self.spec.get('interfaceFilter')
         self.type = self.spec.get('type', 'Builtin')
         self.parameters = self.spec.get('parameters', {})
 
@@ -41,6 +43,9 @@ class Profile(Resource):
             'family': 'ip',
             'table': self.table_name
         }
+
+        self.interface = self.get_interface()
+        self.interface_index = get_interface_index(self.interface)
 
         self.ingress = None
         self.egress = None
@@ -108,6 +113,15 @@ class Profile(Resource):
 
         nft(cmds)
 
+    def get_interface(self):
+        if self.interface_filter is None:
+            return get_default_route_interface()
+        else:
+            try:
+                return get_interfaces(self.interface_filter)[0]
+            except IndexError:
+                return None
+
     def match(self, pod):
         selector = LabelSelector(self.spec['podSelector'])
 
@@ -122,6 +136,9 @@ class Profile(Resource):
 
         if self.type != new_profile.type:
             raise RuntimeError('Changing a profile type is not supported')
+
+        if self.interface != new_profile.interface:
+            raise RuntimeError('Changing the interface of a profile is not supported')
 
         for d in DIRECTIONS:
             direction = getattr(self, d)
