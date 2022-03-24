@@ -82,10 +82,10 @@ class BuiltinController(Controller):
                             slot_bytes: int = 0):
         """Enable packet loss."""
 
-        cmd = f'tc qdisc {operation} dev {self.interface} parent {parent} handle {handle} netem'
+        if limit == 0:
+            limit = 20000
 
-        if limit > 0:
-            cmd += f' limit {limit}'
+        cmd = f'tc qdisc {operation} dev {self.interface} parent {parent} handle {handle} netem limit {limit}'
 
         if loss_ratio > 0:
             cmd += f' loss random {int(loss_ratio*1e2)}%'
