@@ -4,9 +4,10 @@ from typing import Dict, Set, Any, TYPE_CHECKING
 import logging
 import ipaddress
 import random
+import json
 
 from k8s_netem.resource import Resource
-from k8s_netem.nftables import nft
+from k8s_netem.nftables import NftablesError, nft
 from k8s_netem.peer import Peer
 
 if TYPE_CHECKING:
@@ -126,12 +127,6 @@ class Rule(Resource):
                 self.nets.add(cidr)
 
                 cmds += self.cmd_modify_set_net('add', cidr)
-
-        for proto in self.inet_protos:
-            cmds += self.cmd_modify_set_port
-
-        for type in self.ether_types:
-            pass
 
         return cmds
 
@@ -329,45 +324,27 @@ class Rule(Resource):
         return self.rule.cmd_delete_rule() + \
                self.rule.cmd_create_rule()
 
-    def cmd_modify_set_ether_type(self, op: str, ether_type: str | int, comment: str = None):
-        elem = {
-          'val': ether_type
-        }
-
-        if comment is not None:
-            elem['comment'] = comment
-
+    def cmd_modify_set_ether_type(self, op: str, ether_type: str | int):
         return [
           {
             op: {
               'element': {
                 **self.direction.profile.table,
                 'name': self.set_ether_types_name,
-                'elem': [
-                  elem
-                ]
+                'elem': ether_type
               }
             }
           }
         ]
 
-    def cmd_modify_set_inet_proto(self, op: str, protocol: str | int, comment: str = None):
-        elem = {
-          'val': protocol
-        }
-
-        if comment is not None:
-            elem['comment'] = comment
-
+    def cmd_modify_set_inet_proto(self, op: str, protocol: str | int):
         return [
           {
             op: {
               'element': {
                 **self.direction.profile.table,
                 'name': self.set_inet_protos_name,
-                'elem': [
-                  elem
-                ]
+                'elem': protocol
               }
             }
           }
@@ -400,7 +377,7 @@ class Rule(Resource):
 
     def cmd_modify_set_net(self, op: str, cidr: ipaddress.IPv4Network, comment: str = None):
         if cidr.prefixlen >= ipaddress.IPV4LENGTH:  # IPv6
-            val = str(cidr.network_address)
+            val: str | dict = str(cidr.network_address)
         else:
             val = {
               'prefix': {
@@ -442,7 +419,11 @@ class Rule(Resource):
         cmds += self.cmd_populate_set_ports()
         cmds += self.cmd_create_rule()
 
-        nft(cmds)
+        try:
+            nft(cmds)
+        except NftablesError as e:
+            self.logger.error('Failed to apply nftables rules: %s', e)
+            self.logger.error('  Commands: %s', json.dumps(e.cmds, indent=2))
 
     def deinit_nftables(self):
         cmds = []
