@@ -12,8 +12,8 @@ spec:
     metadata:
       labels:
         component: example
-        #traffic-profile: delay-jitter-to-quad-one
-        traffic-profile: profile-delay-jitter-flexe
+        traffic-profile: builtin
+        # traffic-profile: flexe
     spec:
       containers:
       - name: ping-cloudflare
@@ -26,7 +26,7 @@ spec:
         securityContext:
           capabilities:
             add:
-              - NET_ADMIN
+            - NET_ADMIN
 
       - name: ping-google
         image: nicolaka/netshoot

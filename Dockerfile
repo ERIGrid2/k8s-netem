@@ -19,7 +19,6 @@ COPY etc/supervisord.conf /etc/
 RUN mkdir /src
 WORKDIR /src
 COPY . /src
-COPY src/flexe/profiles /src/profiles/
 
 RUN pip install -e .
 

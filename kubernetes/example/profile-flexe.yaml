@@ -2,8 +2,10 @@
 apiVersion: k8s-netem.riasc.eu/v1
 kind: TrafficProfile
 metadata:
-  name: profile-delay-jitter-flexe
+  name: profile-flexe
 spec:
+  interfaceFilter: gre1
+
   podSelector:
     matchLabels:
       traffic-profile: profile-delay-jitter-flexe
@@ -12,7 +14,7 @@ spec:
 
   parameters:
     segments:
-    - repeat: True
+    - repeat: true
 
     profiles:
     - name: ethernet
@@ -111,12 +113,3 @@ spec:
   - ports:
     - port: 80
       protocol: tcp
-
-  ingress:
-  - ports:
-    - port: 1234
-  - from:
-    - podSelector:
-        matchLabels:
-          #traffic-profile: delay-jitter-to-quad-one
-          traffic-profile: profile-delay-jitter-flexe

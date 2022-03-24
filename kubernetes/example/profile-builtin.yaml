@@ -2,17 +2,17 @@
 apiVersion: k8s-netem.riasc.eu/v1
 kind: TrafficProfile
 metadata:
-  name: profile-delay-jitter
+  name: profile-builtin
 spec:
   podSelector:
     matchLabels:
-      traffic-profile: delay-jitter-to-quad-one
+      traffic-profile: builtin
 
   type: Builtin
   parameters:
     netem:
       delay: 0.2 # seconds
-      loss_ratio: 1 # in [0, 1]
+      loss_ratio: 0.2 # in [0, 1]
 
   egress:
 
@@ -50,11 +50,3 @@ spec:
       protocol: TCP
     - port: 53
       protocol: UDP
-
-  ingress:
-  - ports:
-    - port: 1234
-  - from:
-    - podSelector:
-        matchLabels:
-          traffic-profile: delay-jitter-to-quad-one

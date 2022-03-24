@@ -46,7 +46,7 @@ source scripts/dev.sh
 kubectl create ns my-app
 
 # Create the example deployment and profile only for the first time
-kubectl -n my-app apply -f kubernetes/example/profile.yaml
+kubectl -n my-app apply -f kubernetes/example/profile-builtin.yaml
 kubectl -n my-app apply -f kubernetes/example/deployment.yaml
 
 # Rebuild k8s-netem Docker image and restart example deployment
