@@ -25,6 +25,17 @@ import k8s_netem.log as log
 LOGGER = logging.getLogger('sidecard')
 
 
+def dump_nftables():
+    rulset = nft([
+        {
+            'list': {
+                'ruleset': None
+            }
+        }
+    ])
+    LOGGER.debug(rulset)
+
+
 def init_signals(netem):
     '''Catch signals in order to stop network impairment before exiting.'''
 
@@ -110,7 +121,7 @@ def main():
         ctrl.add_profile(profile)
 
     # Show current nftables rulset
-    nft([{'list': {'ruleset': None}}])
+    dump_nftables()
 
     # Keep watching for added/removed/modified profiles
     watch(interfaces, my_pod)
@@ -180,4 +191,4 @@ def watch(interfaces: Dict[str, Controller], my_pod):
                     del interfaces[profile.interface]
 
         # Show current nftables rulset
-        nft([{'list': {'ruleset': None}}])
+        dump_nftables()

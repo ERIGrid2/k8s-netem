@@ -11,9 +11,10 @@ LOGGER = logging.getLogger('nft')
 
 class NftablesError(RuntimeError):
 
-    def __init__(self, rc: int, err: str):
+    def __init__(self, rc: int, err: str, cmds):
         self.rc = rc
         self.err = err
+        self.cmds = cmds
 
         super().__init__(f'Failed to configure nftables: {err} ({rc})')
 
@@ -46,7 +47,7 @@ def nft(cmds):
         LOGGER.trace('NFT Output: %s', json.dumps(output, indent=2))
 
     if rc != 0:
-        raise NftablesError(rc, err)
+        raise NftablesError(rc, err, cmds)
 
     return output
 
