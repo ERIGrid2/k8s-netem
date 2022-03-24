@@ -51,7 +51,9 @@ class Profile(Resource):
         self.egress = None
 
         if 'ingress' in self.spec:
-            self.ingress = Direction(self, self.spec['ingress'], 'ingress')
+            raise RuntimeError('Ingress emulation is currently not supported')
+            # self.ingress = Direction(self, self.spec['ingress'], 'ingress')
+
         if 'egress' in self.spec:
             self.egress = Direction(self, self.spec['egress'], 'egress')
 
